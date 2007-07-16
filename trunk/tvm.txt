@@ -1,0 +1,212 @@
+256 32-bit registers - R0..R255
+4GB memory (RAM), 4GB persistent storage (blocks of 4KB?)
+instructions include operand size - 8, 16, 32 bit (b, w, or nothing, appended at the end of the mnemonic)
+operand addressing is 
+	short-immediate
+		specified as:	number, e.g. 5
+		operand is a number, part of instruction (1 byte)
+	immediate
+		specified as:	number, e.g. 5
+		operand is a number, part of instruction (4 bytes)
+	register (direct)
+		specified as:	register name e.g. R15 or R[15]
+		operand is a register, its index is specified in the instruction code
+	register indirect
+		specified as:	R[register name], e.g. R[R15]
+		operand is a register, whose index is in the lower byte of the specified register, whose index is specified in the instruction code
+	register indirect + displacement, e.g. R[R15 + 5]
+		specified as:	R[register name + number]
+		operand is a register, whose index is calculated by adding the lower byte of the specified register and a number; the index of the register and the number are specified in the instruction code
+	direct
+		specified as:	[address], e.g. [420000]
+		operand is a memory cell, its address is specified in the instruction code
+	indirect
+		specified as:	[register name], e.g. [R15]
+		operand is a memory cell, its address is found in a register, whose index is specified in the instruction code
+	indirect + displacement
+		specified as:	[register name + number], e.g. [R15 + 420000] or [420000 + R15]
+		operand is a memory cell, its address is calculated by adding contents of a register and a number; the register index and the number are specified in the instruction code
+	relative
+		specified as:	label
+		used only for jump/call instructions; operand is added to IP to obtain the new value
+
+for single-operand instructions - all kinds of operand addressing are available
+for two-operand instruction - the destination operand must be register
+stack cell size is 32 bit, stack grows from the bottom to top of memory
+no interrupts or exceptions for now, execution begins at address 0
+
+Instruction set:
+
+Used symbols:
+R - register or register indirect addressing
+Rw - register or register indirect addressing, lower word of the register
+Rb - register or register indirect addressing, lower byte of the register
+Rn:Rn+1 - registers with indices n and n+1 are concatenated to form a single 64 bit register.
+K - immediate addressing
+A - any type of addressing
+C - carry flag
+N - negative flag
+Z - zero flag
+SP - stack pointer
+IP - instruction pointer
+FLAGS - flags register (containing Z, C, N)
+isz - instruction size
+
+Arithmetic:
+opcode	Mn	oper	operation		flags
+01	add	R, A	R <- R + A		ZCN
+02	adc	R, A	R <- R + A + C		ZCN
+03	sub	R, A	R <- R - A		ZCN
+04	sbc	R, A	R <- R - A - C		ZCN
+05	and	R, A	R <- R & A		ZN
+06	or	R, A	R <- R | A		ZN
+07	xor	R, A	R <- R ^ A		ZN
+08	not	A	A <- ~A			ZN
+09	neg	A	A <- -A			ZN
+0A	inc	A	A <- A + 1		ZN
+0B	dec	A	A <- A - 1		ZN
+0C	tst	A	A <- A & A		ZN
+0D	clr	A	A <- 0			-
+0E	mul	R, A	Rn:Rn+1 <- R * A	ZC
+0E	mulw	Rw, A	R <- Rw * A		ZC
+0E	mulb	Rb, A	Rw <- Rb * A		ZC
+0F	div?
+
+Flow control:
+10	jmp	K	IP <- IP + K + isz	-
+11	jmp	A	IP <- A			-
+12	call	K	STACK <- IP + isz	-
+			IP <- IP + K + isz
+13	call	A	STACK <- IP + isz	-
+			IP <- A
+14	ret		IP <- STACK		-
+15	cmp	R, A	R - A			ZCN
+16	cpc	R, A	R - A - C		ZCN
+18	jz	K	if (Z) IP <- IP + K + isz
+19	jnz	K	if (!Z) IP <- IP + K + isz
+1A	jc	K	if (C) IP <- IP + K + isz
+1B	jnc	K	if (!C) IP <- IP + K + isz
+1C	jn	K	if (N) IP <- IP + K + isz
+1D	jp	K	if (!N) IP <- IP + K + isz
+90	nop		-			-
+00	break		breaks			-
+CC	break		breaks			-
+A5	halt		stops the VM
+
+Data transfer:
+20	mov	R, A	R <- A			-
+21	mov	A, R	A <- R			-
+22	in?
+23	out?
+24	push	A	STACK <- A		-
+25	pop	A	A <- STACK		-
+26	pushf		STACK <- FLAGS		-
+27	popf		FLAGS <- STACK 		*
+
+Bitwise:
+30	shl	A, K	A <- A << K		ZCN
+31	shr	A, K	A <- A >> K		ZCN
+32	sar	A, K	A <- A >>> K		ZCN
+33	rol	A, K	A <- A << 1 | C		ZCN
+34	ror	A, K	A <- A >> 1 | C	<< 7	ZCN
+36	clz		Z <- 0			Z
+37	stz		Z <- 1			Z
+38	clc		C <- 0			C
+39	stc		C <- 1			C
+3A	cln		N <- 0			N
+3B	stn		N <- 1			N
+
+Instruction Opcodes (bits):
+cccc cccc ss_d aaaa *operands*
+
+c - opcode
+s - operand size (missing for no-operand instructions)
+a - addressing mode (for source in 2-operand instructions, missing for no-operand instructions)
+d - addressing mode (for destination in 2-operand instructions, missing for no-operand instructions)
+_ - reserved
+
+Size values:
+00	32 bit
+01	16 bit
+10	8 bit
+
+Addressing mode values and operands:
+ss	aaaa	addressing mode				operand bytes
+00	0000	immediate				KKKK
+01	0000	immediate				KK
+10	0000	immediate				K
+xx	0001	register (direct)			R
+xx	0010	register indirect			R
+xx	0011	register indirect + displacement	RK
+xx	0100	direct					KKKK
+xx	0101	indirect				R
+xx	0110	indirect + displacement			RKKKK
+xx	0111	relative (reserved)			K	(not really used, as the relative jump/call has separate opcode)
+xx	1000	short-immediate				K
+xx	1110	indirect + short-displacement		RK
+
+Destination operand addressing:
+d
+0 - register
+1 - register indirect
+
+common instruction execution procedure:
+1. fetch instruction
+2. test instruction kind
+	2.a. relative jump/call instruction
+		2.a.1. fetch offset (1 byte)
+		2.a.2. execute instruction
+	2.b. no-operands instruction
+		2.b.1. execute instruction
+	2.c. one-operand instruction
+		2.c.1. fetch operand descriptor
+		2.c.2. test addressing mode
+			2.c.2.a. immediate
+				2.c.2.a.1. use IP as memory address
+				2.c.2.a.2. load operand of proper size
+				2.c.2.a.3. adjust IP
+				2.c.2.a.4. execute instruction
+			2.c.2.b. register (all kinds)
+				2.c.2.b.1. load register index
+				2.c.2.b.2. load operand of proper size
+				2.c.2.b.3. execute instruction
+				2.c.2.b.4. store result in register index
+			2.c.2.c. memory (all kinds)
+				2.c.2.c.1. load memory address
+				2.c.2.c.2. load operand of proper size
+				2.c.2.c.3. execute instruction
+				2.c.2.c.4. store result in memory address
+	2.d. two-operand instruction
+		2.c.1. fetch operand descriptor
+		2.c.2. load destination register index
+		2.c.3. test source addressing mode
+			2.c.3.a. immediate
+				2.c.3.a.1. use IP as memory address
+				2.c.3.a.2. load operand of proper size
+				2.c.3.a.3. adjust IP
+			2.c.3.b. register (all kinds)
+				2.c.3.b.1. load register index
+				2.c.3.b.2. load operand of proper size
+			2.c.3.c. memory (all kinds)
+				2.c.2.c.1. load memory address
+				2.c.2.c.2. load operand of proper size
+		2.c.4. execute instruction
+		2.c.5. store result in destination register
+
+load immediate D
+load immediate W
+load immediate B
+calculate effective address
+calculate register index
+load memory D
+load memory W
+load memory B
+load register D
+load register W
+load register B
+store memory D
+store memory W
+store memory B
+store register D
+store register W
+store register B
