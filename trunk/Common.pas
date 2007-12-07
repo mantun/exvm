@@ -11,7 +11,6 @@ type
   P32Cell = ^T32Cell;
   P16Cell = ^T16Cell;
   P8Cell = ^T8Cell;
-  PCell = ^TCell;
 
   TOpSize = (sz32, sz16, sz8);
 

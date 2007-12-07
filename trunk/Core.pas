@@ -8,16 +8,25 @@ var
   IP : TAddress;
   SP : TAddress;
 
+type
+  EBadInstructionException = class(Exception);
+  TAddrMode = (amImmediate,
+    amRegisterDirect, amRegisterIndirect, amRegisterIndirectWDispl,
+    amDirect, amIndirect, amIndirectWDispl,
+    amRelative,
+    amShortImmediate, amIndirectWShortDispl);
+
+function AddressingDescriptorToMode(adescr : T8Cell) : TAddressingMode;
+
 procedure ExecuteNext;
 
 implementation
 
-uses SysUtils, Memory;
+uses Memory, InstrLib;
 
-type
-  TProcedure = procedure;
-var
-  InstructionTable : Array[Byte] of TProcedure;
+function AddressingDescriptorToMode(adescr : T8Cell) : TAddressingMode;
+begin
+end;
 
 procedure ExecuteNext;
 var
@@ -26,18 +35,5 @@ begin
   opcode := getmem(IP, sz8);
   InstructionTable[opcode];
 end;
-
-procedure InitInstructionTable;
-begin
-
-end;
-
-procedure BreakPointInstruction;
-begin
-  WriteLn('Breakpont at ' + IntToHex(IP, 8));
-end;
-
-initialization
-  InitInstructionTable;
 
 end.
