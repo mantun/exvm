@@ -2,7 +2,7 @@ unit Core;
 
 interface
 
-uses Common;
+uses SysUtils, Common;
 
 var
   IP : TAddress;
@@ -16,7 +16,7 @@ type
     amRelative,
     amShortImmediate, amIndirectWShortDispl);
 
-function AddressingDescriptorToMode(adescr : T8Cell) : TAddressingMode;
+function AddrDescrDestToMode(adescr : T8Cell) : TAddrMode;
 
 procedure ExecuteNext;
 
@@ -24,8 +24,21 @@ implementation
 
 uses Memory, InstrLib;
 
-function AddressingDescriptorToMode(adescr : T8Cell) : TAddressingMode;
+function AddrDescrDestToMode(adescr : T8Cell) : TAddrMode;
 begin
+  case adescr and $0F of
+    $0 : Result := amImmediate;
+    $1 : Result := amRegisterDirect;
+    $2 : Result := amRegisterIndirect;
+    $3 : Result := amRegisterIndirectWDispl;
+    $4 : Result := amDirect;
+    $5 : Result := amIndirect;
+    $6 : Result := amIndirectWDispl;
+    $7 : Result := amRelative;
+    $8 : Result := amShortImmediate;
+    $E : Result := amIndirectWShortDispl;
+    else raise EBadInstructionException.Create('invalid addressing mode');
+  end;
 end;
 
 procedure ExecuteNext;
