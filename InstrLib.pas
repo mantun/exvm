@@ -11,7 +11,10 @@ implementation
 
 uses SysUtils, Common, Core, Memory;
 
-function GetSource(IP : TAddress; amode : TAddrMode);
+function GetSource(IP : TAddress; amode : TAddrMode; opsize : TOpSize) : TCell;
+begin
+
+end;
 
 function CalcEffectiveAddress(PAD : TAddress) : TAddress;
 begin
