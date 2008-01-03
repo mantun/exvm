@@ -16,7 +16,8 @@ type
     amRelative,
     amShortImmediate, amIndirectWShortDispl);
 
-function AddrDescrDestToMode(adescr : T8Cell) : TAddrMode;
+function AddrDescrSrcToMode(adescr : T8Cell) : TAddrMode;
+function InstrSize(adescr : T8Cell) : TAddrMode;
 
 procedure ExecuteNext;
 
@@ -24,7 +25,7 @@ implementation
 
 uses Memory, InstrLib;
 
-function AddrDescrDestToMode(adescr : T8Cell) : TAddrMode;
+function AddrDescrSrcToMode(adescr : T8Cell) : TAddrMode;
 begin
   case adescr and $0F of
     $0 : Result := amImmediate;
