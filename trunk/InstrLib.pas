@@ -9,11 +9,81 @@ var
 
 implementation
 
-uses SysUtils, Common, Core, Memory;
+uses SysUtils, Common, Core, Memory, Registers;
+
+const
+  OpSize : Array[TAddrMode] of Integer = (
+  );
 
 function GetSource(IP : TAddress; amode : TAddrMode; opsize : TOpSize) : TCell;
+var
+  reg, regdispl : T8Cell;
+  addr, adispl : TAddress;
 begin
+  case amode of
+    amImmediate : Result := getmem(IP + 2, opsize);
+    amRegisterDirect : begin
+      reg := getmem(IP + 2, sz8);
+      Result := getreg(reg, opsize);
+    end;
+    amRegisterIndirect : begin
+      reg := getmem(IP + 2, sz8);
+      reg := getreg(reg, sz8);
+      Result := getreg(reg, opsize);
+    end;
+    amRegisterIndirectWDispl : begin
+      reg := getmem(IP + 2, sz8);
+      reg := getreg(reg, sz8);
+      regdispl := getmem(IP + 3, sz8);
+      Result := getreg((reg + regdispl) and $FF, opsize);
+    end;
+    amDirect : begin
+      addr := getmem(IP + 2, sz32);
+      Result := getmem(addr, opsize);
+    end;
+    amIndirect : begin
+      reg := getmem(IP + 2, sz8);
+      addr := getreg(reg, sz32);
+      Result := getmem(addr, opsize);
+    end;
+    amIndirectWDispl : begin
+      reg := getmem(IP + 2, sz8);
+      addr := getreg(reg, sz32);
+      adispl := getmem(IP + 3, sz32);
+      Result := getmem(addr + adispl, opsize);
+    end;
+    amRelative : Result := getmem(IP + 2, opsize) + IP;
+    amShortImmediate : Result := getmem(IP + 2, sz8);
+    amIndirectWShortDispl : begin
+      reg := getmem(IP + 2, sz8);
+      addr := getreg(reg, sz32);
+      adispl := getmem(IP + 3, sz8);
+      Result := getmem(addr + adispl, opsize);
+    end;
+    else begin
+      Assert(False);
+      Result := 0;
+    end;
+  end;
+end;
 
+function GetDestination(IP : TAddress; amode : TAddrMode; opsize : TOpSize) : TCell;
+begin
+  case amode of
+    amRegisterDirect : begin
+      reg := getmem(IP + ?, sz8);
+      Result := getreg(reg, opsize);
+    end;
+    amRegisterIndirect : begin
+      reg := getmem(IP + ?, sz8);
+      reg := getreg(reg, sz8);
+      Result := getreg(reg, opsize);
+    end;
+    else begin
+      Assert(False);
+      Result := 0;
+    end;
+  end;
 end;
 
 function CalcEffectiveAddress(PAD : TAddress) : TAddress;

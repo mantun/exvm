@@ -141,7 +141,9 @@ xx	0011	register indirect + displacement	RK
 xx	0100	direct					KKKK
 xx	0101	indirect				R
 xx	0110	indirect + displacement			RKKKK
-xx	0111	relative (reserved)			K	(not really used, as the relative jump/call has separate opcode)
+00	0111	relative				KKKK
+01	0111	relative				KK
+10	0111	relative				K
 xx	1000	short-immediate				K
 xx	1110	indirect + short-displacement		RK
 
