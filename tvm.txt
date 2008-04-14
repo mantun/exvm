@@ -42,7 +42,7 @@ R - register or register indirect addressing
 Rw - register or register indirect addressing, lower word of the register
 Rb - register or register indirect addressing, lower byte of the register
 Rn:Rn+1 - registers with indices n and n+1 are concatenated to form a single 64 bit register.
-K - immediate addressing
+K(8) - immediate/relative addressing (8 bits)
 A - any type of addressing
 C - carry flag
 N - negative flag
@@ -57,64 +57,65 @@ opcode	Mn	oper	operation		flags
 01	add	R, A	R <- R + A		ZCN
 02	adc	R, A	R <- R + A + C		ZCN
 03	sub	R, A	R <- R - A		ZCN
-04	sbc	R, A	R <- R - A - C		ZCN
-05	and	R, A	R <- R & A		ZN
-06	or	R, A	R <- R | A		ZN
-07	xor	R, A	R <- R ^ A		ZN
-08	not	A	A <- ~A			ZN
-09	neg	A	A <- -A			ZN
-0A	inc	A	A <- A + 1		ZN
-0B	dec	A	A <- A - 1		ZN
-0C	tst	A	A <- A & A		ZN
-0D	clr	A	A <- 0			-
-0E	mul	R, A	Rn:Rn+1 <- R * A	ZC
-0E	mulw	Rw, A	R <- Rw * A		ZC
-0E	mulb	Rb, A	Rw <- Rb * A		ZC
-0F	div?
+04	sbb	R, A	R <- R - A - C		ZCN
+05	cmp	R, A	R - A			ZCN
+;n/a for now 06	cpc	R, A	R - A - C		ZCN
+07	and	R, A	R <- R & A		ZN
+08	or	R, A	R <- R | A		ZN
+09	xor	R, A	R <- R ^ A		ZN
+0A	not	A	A <- ~A			ZN
+0B	neg	A	A <- -A			ZN
+0C	inc	A	A <- A + 1		ZN
+0D	dec	A	A <- A - 1		ZN
+;n/a for now 0E	test	A	A <- A & A		ZN
+;n/a for now 0F	clr	A	A <- 0			-
+
+10?	mul	R, A	Rn:Rn+1 <- R * A	ZC
+10?	mulw	Rw, A	R <- Rw * A		ZC
+10?	mulb	Rb, A	Rw <- Rb * A		ZC
+11?	div?
 
 Flow control:
-10	jmp	K	IP <- IP + K + isz	-
-11	jmp	A	IP <- A			-
-12	call	K	STACK <- IP + isz	-
-			IP <- IP + K + isz
-13	call	A	STACK <- IP + isz	-
+80	jmp	K	IP <- IP + K(8) + isz	-
+81	jmp	A	IP <- A			-
+82	call	K	STACK <- IP + isz	-
+			IP <- IP + K(8) + isz
+83	call	A	STACK <- IP + isz	-
 			IP <- A
-14	ret		IP <- STACK		-
-15	cmp	R, A	R - A			ZCN
-16	cpc	R, A	R - A - C		ZCN
-18	jz	K	if (Z) IP <- IP + K + isz
-19	jnz	K	if (!Z) IP <- IP + K + isz
-1A	jc	K	if (C) IP <- IP + K + isz
-1B	jnc	K	if (!C) IP <- IP + K + isz
-1C	jn	K	if (N) IP <- IP + K + isz
-1D	jp	K	if (!N) IP <- IP + K + isz
+84	ret		IP <- STACK		-
+88	jz	K	if (Z) IP <- IP + K(8) + isz
+89	jnz	K	if (!Z) IP <- IP + K(8) + isz
+8A	jc	K	if (C) IP <- IP + K(8) + isz
+8B	jnc	K	if (!C) IP <- IP + K(8) + isz
+8C	jn	K	if (N) IP <- IP + K(8) + isz
+8D	jp	K	if (!N) IP <- IP + K(8) + isz
 90	nop		-			-
 00	break		breaks			-
 CC	break		breaks			-
 A5	halt		stops the VM
 
 Data transfer:
-20	mov	R, A	R <- A			-
-21	mov	A, R	A <- R			-
-22	in?
-23	out?
-24	push	A	STACK <- A		-
-25	pop	A	A <- STACK		-
-26	pushf		STACK <- FLAGS		-
-27	popf		FLAGS <- STACK 		*
+A0	mov	R, A	R <- A			-
+A1	mov	A, R	A <- R			-
+A2	in?
+A3	out?
+A4	push	A	STACK <- A		-
+A5	pop	A	A <- STACK		-
+A6	pushf		STACK <- FLAGS		-
+A7	popf		FLAGS <- STACK 		*
 
 Bitwise:
-30	shl	A, K	A <- A << K		ZCN
-31	shr	A, K	A <- A >> K		ZCN
-32	sar	A, K	A <- A >>> K		ZCN
-33	rol	A, K	A <- A << 1 | C		ZCN
-34	ror	A, K	A <- A >> 1 | C	<< 7	ZCN
-36	clz		Z <- 0			Z
-37	stz		Z <- 1			Z
-38	clc		C <- 0			C
-39	stc		C <- 1			C
-3A	cln		N <- 0			N
-3B	stn		N <- 1			N
+B0	shl	A, K	A <- A << K(8)		ZCN
+B1	shr	A, K	A <- A >> K(8)		ZCN
+B2	sar	A, K	A <- A >>> K(8)		ZCN
+B3	rol	A, K	A <- A << 1 | C		ZCN
+B4	ror	A, K	A <- A >> 1 | C	<< 7	ZCN
+B6	clz		Z <- 0			Z
+B7	stz		Z <- 1			Z
+B8	clc		C <- 0			C
+B9	stc		C <- 1			C
+BA	cln		N <- 0			N
+BB	stn		N <- 1			N
 
 Instruction Opcodes (bits):
 cccc cccc ss_d aaaa *operands*
