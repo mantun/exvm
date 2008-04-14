@@ -1,0 +1,299 @@
+; --- General -----------------------------------------------------------------
+
+general_prolog name
+// --------------------------------------------------
+procedure {name};
+asm
+
+general_epilog
+end;
+
+size_Rel opsize
+  1
+
+size_Imm_8
+  1
+
+size_Imm_16
+  2
+
+size_Imm_32
+  4
+
+size_Imm opsize
+  {size_Imm_{opsize}}
+
+size_Reg opsize
+  1
+
+size_RegInd opsize
+  1
+
+size_RegIndDispl opsize
+  2
+
+size_Direct opsize
+  4
+
+size_Indirect opsize
+  1
+
+size_IndirectDispl opsize
+  5
+
+size_ShortImm opsize
+  1
+
+size_IndirectShortDispl opsize
+  2
+
+; --- Arithmetic Instructions -------------------------------------------------
+
+calcSourceOpAddr_1Op
+  mov esi, IP
+  add esi, SingleOpDispl
+
+calcSourceOpAddr_2Op
+  mov esi, IP
+  add esi, SourceOpDispl
+
+calcSA_Imm
+
+calcSA_Reg
+  xor eax, eax
+  mov al, [esi]
+  lea esi, [eax * 4 + RegistersBase]
+
+calcSA_RegInd
+  xor eax, eax
+  mov al, [esi]
+  mov al, [eax * 4 + RegistersBase]
+  lea esi, [eax * 4 + RegistersBase]
+
+calcSA_RegIndDispl
+  xor eax, eax
+  mov al, [esi]
+  mov al, [eax * 4 + RegistersBase]
+  add al, [esi + 1]
+  lea esi, [eax * 4 + RegistersBase]
+
+calcSA_Direct
+  mov eax, [esi];
+  call GetCellAddr
+  mov esi, eax
+
+calcSA_Indirect
+  xor eax, eax
+  mov al, [esi]
+  mov eax, [eax * 4 + RegistersBase]
+  call GetCellAddr
+  mov esi, eax
+
+calcSA_IndirectDispl
+  xor eax, eax
+  mov al, [esi]
+  mov eax, [eax * 4 + RegistersBase]
+  mov esi, [esi + 1]
+  add eax, esi
+  call GetCellAddr
+  mov esi, eax
+
+calcDA_Reg
+  mov edi, IP
+  xor eax, eax
+  mov al, [edi + DestOpDispl]
+  lea edi, [eax * 4 + RegistersBase]
+
+calcDA_RegInd
+  mov edi, IP
+  xor eax, eax
+  mov al, [edi + DestOpDispl]
+  mov al, [eax * 4 + RegistersBase]
+  lea edi, [eax * 4 + RegistersBase]
+
+fetchS_32
+  mov eax, [esi]
+
+fetchS_16
+  mov ax, [esi]
+
+fetchS_8
+  mov al, [esi]
+
+setFlagsZCN
+  pushf
+  pop eax
+  mov Flags, al
+
+perform_2op_32 operation
+  {operation} [edi], eax
+
+perform_2op_16 operation
+  {operation} [edi], ax
+
+perform_2op_8 operation
+  {operation} [edi], al
+
+perform_1op_32 operation
+  {operation} [esi]
+
+perform_1op_16 operation
+  {operation} [esi]
+
+perform_1op_8 operation
+  {operation} [esi]
+
+advanceIP_1op addrS opsize
+  add IP, 1+{size_{addrS}|{opsize}}
+
+advanceIP_2op addrS addrD opsize
+  add IP, 2+{size_{addrS}|{opsize}}
+
+arith_instruction_2op operation addrS addrD size
+{general_prolog|{operation}_{addrS}_{addrD}_{size}}
+  {calcSourceOpAddr_2Op}
+  {calcSA_{addrS}}
+  {calcDA_{addrD}}
+  {fetchS_{size}}
+  {perform_2op_{size}|{operation}}
+  {setFlagsZCN}
+  {advanceIP_2op|{addrS}|{addrD}|{size}}
+{general_epilog}
+
+arith_instruction_1op operation addrS size
+{general_prolog|{operation}_{addrS}_{size}}
+  {calcSourceOpAddr_1Op}
+  {calcSA_{addrS}}
+  {perform_1op_{size}|{operation}}
+  {setFlagsZCN}
+  {advanceIP_1op|{addrS}|{size}}
+{general_epilog}
+
+expand_arith operation opcount
+{expand_arith_size|Imm|{operation}|{opcount}}
+{expand_arith_size|Reg|{operation}|{opcount}}
+{expand_arith_size|RegInd|{operation}|{opcount}}
+{expand_arith_size|RegIndDispl|{operation}|{opcount}}
+{expand_arith_size|Direct|{operation}|{opcount}}
+{expand_arith_size|Indirect|{operation}|{opcount}}
+{expand_arith_size|IndirectDispl|{operation}|{opcount}}
+
+expand_arith_size addrS operation opcount
+{expand_arith_{opcount}|{operation}|{addrS}|8}
+{expand_arith_{opcount}|{operation}|{addrS}|16}
+{expand_arith_{opcount}|{operation}|{addrS}|32}
+
+expand_arith_1op operation addrS size
+{arith_instruction_1op|{operation}|{addrS}|{size}}
+
+expand_arith_2op operation addrS size
+{arith_instruction_2op|{operation}|{addrS}|Reg|{size}}
+{arith_instruction_2op|{operation}|{addrS}|RegInd|{size}}
+
+; --- Flow Control Instructions -----------------------------------------------
+
+branch_to_target_rel addrS
+  mov esi, IP
+  movzx eax, byte ptr [esi + 1]
+  add esi, eax
+  mov IP, esi
+
+branch_to_target_abs addrS
+  {calcSourceOpAddr_1Op}
+  {calcSA_{addrS}}
+  {fetchS_32}
+  mov IP, eax
+
+branch_code_size_abs
+  2
+
+branch_code_size_rel
+  1
+
+check_cond flag neg
+  mov al, Flags
+  test al, {flag}
+  j{neg}z @@dont_branch
+
+check_uncond flag neg
+
+store_ret_addr_jmp addrS abs_rel
+
+store_ret_addr_call addrS abs_rel
+  dec _SP
+  mov esi, _SP
+  mov eax, IP
+  add eax, {branch_code_size_{abs_rel}}+{size_{addrS}|32}
+  mov [Stack + esi], eax
+
+branch_instruction operation addrS abs_rel cond neg flag jmp_call
+{general_prolog|{operation}_{addrS}_{abs_rel}}
+  {check_{cond}|{flag}|{neg}}
+  {store_ret_addr_{jmp_call}|{addrS}|{abs_rel}}
+  {branch_to_target_{abs_rel}|{addrS}}
+@@dont_branch:
+{general_epilog}
+
+branch_rel oper
+{branch_instruction|{oper}|Rel|rel|uncond|||{oper}}
+
+branch_abs oper
+{branch_instruction|{oper}|Imm|abs|uncond|||{oper}}
+{branch_instruction|{oper}|Reg|abs|uncond|||{oper}}
+{branch_instruction|{oper}|RegInd|abs|uncond|||{oper}}
+{branch_instruction|{oper}|RegIndDispl|abs|uncond|||{oper}}
+{branch_instruction|{oper}|Direct|abs|uncond|||{oper}}
+{branch_instruction|{oper}|Indirect|abs|uncond|||{oper}}
+{branch_instruction|{oper}|IndirectDispl|abs|uncond|||{oper}}
+
+branch_cond oper neg flag
+{branch_instruction|{oper}|Imm|rel|cond|{neg}|{flag}|jmp}
+
+; --- Target ------------------------------------------------------------------
+
+target
+unit test;
+interface
+var
+  RegistersBase : Pointer;
+  IP : Cardinal;
+  _SP : Cardinal;
+  Flags : Byte;
+  Stack : Pointer;
+const
+  SourceOpDispl = 3;
+  DestOpDispl = 2;
+  SingleOpDispl = 2;
+  CFlag = 4;
+  NFlag = 2;
+  ZFlag = 1;
+implementation
+function GetCellAddr(a : Cardinal) : Cardinal;
+begin
+  Result := a;
+end;
+{expand_arith|add|2op}
+{expand_arith|adc|2op}
+{expand_arith|sub|2op}
+{expand_arith|sbb|2op}
+{expand_arith|cmp|2op}
+{expand_arith|and|2op}
+{expand_arith|or|2op}
+{expand_arith|xor|2op}
+{expand_arith|not|1op}
+{expand_arith|neg|1op}
+{expand_arith|inc|1op}
+{expand_arith|dec|1op}
+{expand_arith|mov|2op}
+{branch_abs|jmp}
+{branch_rel|jmp}
+{branch_abs|call}
+{branch_rel|call}
+{branch_cond|jz||ZFlag}
+{branch_cond|jnz|n|ZFlag}
+{branch_cond|jc||CFlag}
+{branch_cond|jnc|n|CFlag}
+{branch_cond|jn||NFlag}
+{branch_cond|jp|n|NFlag}
+end.
+
