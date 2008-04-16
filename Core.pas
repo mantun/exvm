@@ -5,49 +5,43 @@ interface
 uses SysUtils, Common;
 
 var
-  IP : TAddress;
-  SP : TAddress;
+  _IP : TAddress;
+  _SP : TAddress;
+  Flags : Byte;
+  InstructionTable : Array[Word] of procedure;
+
+const
+  CFlag = 4;
+  NFlag = 2;
+  ZFlag = 1;
 
 type
   EBadInstructionException = class(Exception);
-  TAddrMode = (amImmediate,
-    amRegisterDirect, amRegisterIndirect, amRegisterIndirectWDispl,
-    amDirect, amIndirect, amIndirectWDispl,
-    amRelative,
-    amShortImmediate, amIndirectWShortDispl);
 
-function AddrDescrSrcToMode(adescr : T8Cell) : TAddrMode;
-function InstrSize(adescr : T8Cell) : TAddrMode;
-
+procedure Reset;
 procedure ExecuteNext;
+procedure InvalidInstruction;
 
 implementation
 
-uses Memory, InstrLib;
-
-function AddrDescrSrcToMode(adescr : T8Cell) : TAddrMode;
-begin
-  case adescr and $0F of
-    $0 : Result := amImmediate;
-    $1 : Result := amRegisterDirect;
-    $2 : Result := amRegisterIndirect;
-    $3 : Result := amRegisterIndirectWDispl;
-    $4 : Result := amDirect;
-    $5 : Result := amIndirect;
-    $6 : Result := amIndirectWDispl;
-    $7 : Result := amRelative;
-    $8 : Result := amShortImmediate;
-    $E : Result := amIndirectWShortDispl;
-    else raise EBadInstructionException.Create('invalid addressing mode');
-  end;
-end;
+uses Memory, Instructions;
 
 procedure ExecuteNext;
-var
-  opcode : Byte;
 begin
-  opcode := getmem(IP, sz8);
-  InstructionTable[opcode];
+  InstructionTable[Swap(P16Cell(GetCellAddr(_IP, 2))^)];
+end;
+
+procedure Reset;
+begin
+  _IP := 0;
+  _SP := 0;
+  Flags := 0;
+end;
+
+procedure InvalidInstruction;
+begin
+  raise EBadInstructionException.Create('Invalid instruction at '
+          + IntToHex(_IP, 8) + ': ' + IntToHex(Swap(P16Cell(GetCellAddr(_IP, 2))^), 4));
 end;
 
 end.

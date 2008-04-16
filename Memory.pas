@@ -7,8 +7,10 @@ Uses Common, SysUtils;
 type
   EMemoryManagerException = class(Exception);
 
-function getmem(address : TAddress; size : TOpSize) : TCell;
-procedure setmem(address : TAddress; size : TOpSize; value : TCell);
+function GetCellAddr(address : TAddress; size : Integer) : Pointer;
+function GetCellAddrWrite(address : TAddress; size : Integer) : Pointer;
+procedure CommitCellWrite;
+procedure Clear;
 
 implementation
 
@@ -19,6 +21,8 @@ type
   PMemPack = ^TMemPack;
 var
   MemPacks : Array[0..$FFFF] of PMemPack;
+  WriteCellAddr : Pointer;
+  WriteCellBuf : TCell;
 
 function GetPack(PackNo : TAddress) : PMemPack;
 begin
@@ -30,42 +34,42 @@ begin
   end;
 end;
 
-function getmem(address : TAddress; size : TOpSize) : TCell;
+function GetCellAddr(address : TAddress; size : Integer) : Pointer;
 var
   Pack : PMemPack;
   PackNo, PackOffs : TAddress;
 begin
+  Assert(WriteCellAddr = nil);
   PackNo := address shr 16;
   PackOffs := address and $FFFF;
   pack := GetPack(PackNo);
-  if PackOffs <= $10000 - CountBytes[size] then
-    case size of
-      sz32 : Result := P32Cell(@(pack^[PackOffs]))^;
-      sz16 : Result := P16Cell(@(pack^[PackOffs]))^;
-      sz8 : Result := P8Cell(@(pack^[PackOffs]))^;
-      else begin Assert(False); Result := 0; end;
-    end
+  if PackOffs <= $10000 - size then
+    Result := @(pack^[PackOffs])
   else
     raise EMemoryManagerException.Create('Page bounds violated');
 end;
 
-procedure setmem(address : TAddress; size : TOpSize; value : TCell);
-var
-  Pack : PMemPack;
-  PackNo, PackOffs : TAddress;
+function GetCellAddrWrite(address : TAddress; size : Integer) : Pointer;
 begin
-  PackNo := address shr 16;
-  PackOffs := address and $FFFF;
-  pack := GetPack(PackNo);
-  if PackOffs <= $10000 - CountBytes[size] then
-    case size of
-      sz32 : P32Cell(@(pack^[PackOffs]))^:= value;
-      sz16 : P16Cell(@(pack^[PackOffs]))^:= value;
-      sz8 : P8Cell(@(pack^[PackOffs]))^:= value;
-      else Assert(False);
-    end
-  else
-    raise EMemoryManagerException.Create('Page bounds violated');
+  Result := GetCellAddr(address, size);
+end;
+
+procedure CommitCellWrite;
+begin
+  ;
+end;
+
+procedure Clear;
+var
+  i : Integer;
+  p : PMemPack;
+begin
+  for i := Low(MemPacks) to High(MemPacks) do begin
+    p := MemPacks[i];
+    if p <> nil then
+      Dispose(p);
+    MemPacks[i] := nil;
+  end;
 end;
 
 end.
