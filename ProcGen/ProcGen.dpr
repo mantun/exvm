@@ -5,7 +5,8 @@ program ProcGen;
 uses
   SysUtils,
   Classes,
-  StrUtils;
+  StrUtils,
+  test in 'test.pas';
 
 type
   TParser = class
@@ -179,7 +180,12 @@ begin
   if Result = '' then exit;  
   p := TParser.Create(Result);
   try
-    Result := p.Parse;
+    try
+      Result := p.Parse;
+    except
+      Exception(ExceptObject).Message := Exception(ExceptObject).Message + #13#10 + FName;
+      raise;
+    end;
   finally
     p.Free;
   end;
@@ -191,9 +197,9 @@ var
   sl : TStringList;
   m : TMacro;
 begin
+  if ParamCount = 0 then Exit;
   Macros := TStringList.Create;
-//  Assign(t, 'test.txt');
-  Assign(t, 'exvm_instructions.txt');
+  Assign(t, ParamStr(1));
   Reset(t);
   sl := TStringList.Create;
   try
