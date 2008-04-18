@@ -150,9 +150,8 @@ fetchS_8
   mov al, [esi]
 
 setFlagsZCN
-(*  pushf
-  pop eax
-  mov Flags, al*)
+  pushfd
+  pop Flags
 
 perform_2op_32 operation
   {operation} [edi], eax
@@ -247,8 +246,7 @@ branch_code_size_rel
   1
 
 check_cond flag neg
-  mov al, Flags
-  test al, {flag}
+  test Flags, {flag}
   j{neg}z @@dont_branch
 
 check_uncond flag neg
@@ -287,7 +285,7 @@ branch_abs oper
 {branch_instruction|{oper}|IndirectDispl|abs|uncond|||{oper}}
 
 branch_cond oper neg flag
-{branch_instruction|{oper}|Imm|rel|cond|{neg}|{flag}|jmp}
+{branch_instruction|{oper}|Rel|rel|cond|{neg}|{flag}|jmp}
 
 ; --- Opcodes -----------------------------------------------------------------
 
@@ -351,40 +349,60 @@ build_opcode opcode addrS addrD size
 itable_put_single name opcode
   InstructionTable[{opcode}] := @{name};
 
+itable_put_bulk name opcode
+  for i := 0 to $FF do
+    InstructionTable[{opcode} shl 8 + i] := @{name};
+
 opc_arith operation opcount opcode
-{opc_expand_arith_size|Imm|{operation}|{opcount}|{opcode}}
-{opc_expand_arith_size|ShortImm|{operation}|{opcount}|{opcode}}
-{opc_expand_arith_size|Reg|{operation}|{opcount}|{opcode}}
-{opc_expand_arith_size|RegInd|{operation}|{opcount}|{opcode}}
-{opc_expand_arith_size|RegIndDispl|{operation}|{opcount}|{opcode}}
-{opc_expand_arith_size|Direct|{operation}|{opcount}|{opcode}}
-{opc_expand_arith_size|Indirect|{operation}|{opcount}|{opcode}}
-{opc_expand_arith_size|IndirectDispl|{operation}|{opcount}|{opcode}}
-{opc_expand_arith_size|IndirectShortDispl|{operation}|{opcount}|{opcode}}
+  {opc_expand_arith_size|Imm|{operation}|{opcount}|{opcode}}
+  {opc_expand_arith_size|ShortImm|{operation}|{opcount}|{opcode}}
+  {opc_expand_arith_size|Reg|{operation}|{opcount}|{opcode}}
+  {opc_expand_arith_size|RegInd|{operation}|{opcount}|{opcode}}
+  {opc_expand_arith_size|RegIndDispl|{operation}|{opcount}|{opcode}}
+  {opc_expand_arith_size|Direct|{operation}|{opcount}|{opcode}}
+  {opc_expand_arith_size|Indirect|{operation}|{opcount}|{opcode}}
+  {opc_expand_arith_size|IndirectDispl|{operation}|{opcount}|{opcode}}
+  {opc_expand_arith_size|IndirectShortDispl|{operation}|{opcount}|{opcode}}
 
 opc_expand_arith_size addrS operation opcount opcode
-{opc_expand_arith_{opcount}|{operation}|{addrS}|8|{opcode}}
-{opc_expand_arith_{opcount}|{operation}|{addrS}|16|{opcode}}
-{opc_expand_arith_{opcount}|{operation}|{addrS}|32|{opcode}}
+  {opc_expand_arith_{opcount}|{operation}|{addrS}|8|{opcode}}
+  {opc_expand_arith_{opcount}|{operation}|{addrS}|16|{opcode}}
+  {opc_expand_arith_{opcount}|{operation}|{addrS}|32|{opcode}}
 
 opc_expand_arith_1op operation addrS size opcode
-{opc_arith_instruction_1op|{operation}|{addrS}|{size}|{opcode}}
+  {opc_arith_instruction_1op|{operation}|{addrS}|{size}|{opcode}}
 
 opc_expand_arith_2op operation addrS size opcode
-{opc_arith_instruction_2op|{operation}|{addrS}|Reg|{size}|{opcode}}
-{opc_arith_instruction_2op|{operation}|{addrS}|RegInd|{size}|{opcode}}
+  {opc_arith_instruction_2op|{operation}|{addrS}|Reg|{size}|{opcode}}
+  {opc_arith_instruction_2op|{operation}|{addrS}|RegInd|{size}|{opcode}}
 
 opc_arith_instruction_2op operation addrS addrD size opcode
-{itable_put_single|{operation}_{addrS}_{addrD}_{size}|{build_opcode|{opcode}|{addrS}|{addrD}|{size}}}
+  {itable_put_single|{operation}_{addrS}_{addrD}_{size}|{build_opcode|{opcode}|{addrS}|{addrD}|{size}}}
 
 opc_arith_instruction_1op operation addrS size opcode
-{itable_put_single|{operation}_{addrS}_{size}|{build_opcode|{opcode}|{addrS}||{size}}}
+  {itable_put_single|{operation}_{addrS}_{size}|{build_opcode|{opcode}|{addrS}||{size}}}
+
+opc_branch_instruction_abs operation addrS opcode
+  {itable_put_single|{operation}_{addrS}_abs|{build_opcode|{opcode}|{addrS}||}}
+
+opc_branch_rel operation opcode
+  {itable_put_bulk|{operation}_Rel_rel|{opcode}}
+
+opc_branch_abs oper opcode
+  {opc_branch_instruction_abs|{oper}|Imm|{opcode}}
+  {opc_branch_instruction_abs|{oper}|Reg|{opcode}}
+  {opc_branch_instruction_abs|{oper}|RegInd|{opcode}}
+  {opc_branch_instruction_abs|{oper}|RegIndDispl|{opcode}}
+  {opc_branch_instruction_abs|{oper}|Direct|{opcode}}
+  {opc_branch_instruction_abs|{oper}|Indirect|{opcode}}
+  {opc_branch_instruction_abs|{oper}|IndirectDispl|{opcode}}
 
 ; --- Target ------------------------------------------------------------------
 
 target
 unit Instructions;
 interface
+procedure InitInstructionTable;
 implementation
 uses Core, Memory, Registers;
 const
@@ -414,26 +432,32 @@ const
 {branch_cond|jnc|n|CFlag}
 {branch_cond|jn||NFlag}
 {branch_cond|jp|n|NFlag}
-procedure InitEmptyInstructionTable;
+procedure InitInstructionTable;
 var i : Integer;
 begin
-  for i := Low(InstructionTable) to High(InstructionTable) do
-    InstructionTable[i] := @InvalidInstruction;
+  {opc_arith|add|2op|$01}
+  {opc_arith|adc|2op|$02}
+  {opc_arith|sub|2op|$03}
+  {opc_arith|sbb|2op|$04}
+  {opc_arith|cmp|2op|$05}
+  {opc_arith|and|2op|$07}
+  {opc_arith|or|2op|$08}
+  {opc_arith|xor|2op|$09}
+  {opc_arith|not|1op|$0A}
+  {opc_arith|neg|1op|$0B}
+  {opc_arith|inc|1op|$0C}
+  {opc_arith|dec|1op|$0D}
+  {opc_arith|mov|2op|$A0}
+  {opc_branch_rel|jmp|$80}
+  {opc_branch_abs|jmp|$81}
+  {opc_branch_rel|call|$82}
+  {opc_branch_abs|call|$83}
+  {opc_branch_rel|jz|$88}
+  {opc_branch_rel|jnz|$89}
+  {opc_branch_rel|jc|$8A}
+  {opc_branch_rel|jnc|$8B}
+  {opc_branch_rel|jn|$8C}
+  {opc_branch_rel|jp|$8D}
 end;
-initialization
-InitEmptyInstructionTable;
-{opc_arith|add|2op|$01}
-{opc_arith|adc|2op|$02}
-{opc_arith|sub|2op|$03}
-{opc_arith|sbb|2op|$04}
-{opc_arith|cmp|2op|$05}
-{opc_arith|and|2op|$07}
-{opc_arith|or|2op|$08}
-{opc_arith|xor|2op|$09}
-{opc_arith|not|1op|$0A}
-{opc_arith|neg|1op|$0B}
-{opc_arith|inc|1op|$0C}
-{opc_arith|dec|1op|$0D}
-{opc_arith|mov|2op|$A0}
 end.
 
