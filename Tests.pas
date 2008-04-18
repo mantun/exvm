@@ -63,7 +63,7 @@ begin
   P32Cell(@(p^[3]))^ := $12345678;
   RegistersFile[$02] := $87654321;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$02] := $12345678 + $87654321;
   s.Flags := s.Flags or NFlag;
   s._IP := s._IP + 7;
@@ -83,7 +83,7 @@ begin
   P32Cell(@(p^[3]))^ := $BBBBCDEF; // bb is next instr
   RegistersFile[$02] := $87654321;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$02] := ($CDEF + $4321) and $FFFF or $87650000;
   s.Flags := s.Flags or CFlag;
   s._IP := s._IP + 5;
@@ -103,7 +103,7 @@ begin
   P32Cell(@(p^[3]))^ := $BBBBBBEF; // bb is next instr
   RegistersFile[$02] := $87654321;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$02] := ($EF + $21) and $FF or $87654300;
   s.Flags := s.Flags or CFlag;
   s._IP := s._IP + 4;
@@ -124,7 +124,7 @@ begin
   RegistersFile[$02] := $87654321;
   RegistersFile[$03] := $12345678;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$02] := $12345678 + $87654321;
   s.Flags := s.Flags or NFlag;
   s._IP := s._IP + 4;
@@ -146,7 +146,7 @@ begin
   RegistersFile[$03] := $05;
   RegistersFile[$05] := $12345678;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$02] := $12345678 + $87654321;
   s.Flags := s.Flags or NFlag;
   s._IP := s._IP + 4;
@@ -169,7 +169,7 @@ begin
   RegistersFile[$03] := $07;
   RegistersFile[$05] := $12345678;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$02] := $12345678 + $87654321;
   s.Flags := s.Flags or NFlag;
   s._IP := s._IP + 5;
@@ -191,7 +191,7 @@ begin
   P32Cell(p)^ := $12345678;
   RegistersFile[$02] := $87654321;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$02] := $87654321 + $12345678;
   s.Flags := s.Flags or NFlag;
   s._IP := s._IP + 7;
@@ -214,7 +214,7 @@ begin
   RegistersFile[$03] := $20;
   RegistersFile[$02] := $87654321;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$02] := $87654321 + $12345678;
   s.Flags := s.Flags or NFlag;
   s._IP := s._IP + 4;
@@ -238,7 +238,7 @@ begin
   RegistersFile[$03] := $20;
   RegistersFile[$02] := $87654321;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$02] := $87654321 + $12345678;
   s.Flags := s.Flags or NFlag;
   s._IP := s._IP + 8;
@@ -263,7 +263,7 @@ begin
   RegistersFile[$03] := $20;
   RegistersFile[$02] := $87654321;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$02] := $87654321 + $12345678;
   s.Flags := s.Flags or NFlag;
   s._IP := s._IP + 5;
@@ -285,7 +285,7 @@ begin
   p^[4] := $BB; // next instr
   RegistersFile[$02] := $12345678;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$02] := Integer($FFFFFFFE) + $12345678;
   s.Flags := s.Flags or CFlag;
   s._IP := s._IP + 4;
@@ -306,7 +306,7 @@ begin
   RegistersFile[$02] := $03;
   RegistersFile[$03] := $87654321;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$03] := $12345678 + $87654321;
   s.Flags := s.Flags or NFlag;
   s._IP := s._IP + 7;
@@ -327,7 +327,7 @@ begin
   RegistersFile[$02] := $87654321;
   RegistersFile[$03] := $12345678;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$03] := $12345678 + $87654321;
   s.Flags := s.Flags or NFlag;
   s._IP := s._IP + 4;
@@ -345,7 +345,7 @@ begin
   P32Cell(@(p^[3]))^ := $12345678;
   RegistersFile[$02] := $87654321;
   try
-    ExecuteNext;
+    SingleStep;
     Assert(False, 'Test_Add_Imm_Reg_Right_32');
   except
     on EBadInstructionException do ;
@@ -365,7 +365,7 @@ begin
   p^[2] := $02; // reg no
   RegistersFile[$02] := $87654321;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s.Registers[$02] := not $87654321;
   s._IP := s._IP + 3;
   CompareStates(s, GetState, 'Test_Not_Reg_32');
@@ -380,7 +380,7 @@ begin
   p^[1] := $00; // src:imm, size:32
   P32Cell(@(p^[2]))^ := $12345678;
   try
-    ExecuteNext;
+    SingleStep;
     Assert(False, 'Test_Not_Imm_32');
   except
     on EBadInstructionException do ;
@@ -397,7 +397,7 @@ begin
   p^[1] := $08; // src:shortimm, size:32
   P32Cell(@(p^[2]))^ := $12345678;
   try
-    ExecuteNext;
+    SingleStep;
     Assert(False, 'Test_Not_ShortImm_32');
   except
     on EBadInstructionException do ;
@@ -416,7 +416,7 @@ begin
   p^[1] := $AA; // offset
   p^[2] := $BB; // next instr
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s._IP := s._IP + $FFFFFFAA;
   CompareStates(s, GetState, 'Test_Jmp_Rel');
 end;
@@ -433,7 +433,7 @@ begin
   p^[2] := $02; // reg no
   RegistersFile[$02] := $ABABABAB;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s._IP := $ABABABAB;
   CompareStates(s, GetState, 'Test_Jmp_Reg_Abs');
 end;
@@ -451,7 +451,7 @@ begin
   p^[1] := $25; // offset
   p^[2] := $BB; // next instr
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s._IP := s._IP + $25;
   s._SP := s._SP - 4;
   CompareStates(s, GetState, 'Test_Call_Rel');
@@ -472,7 +472,7 @@ begin
   p^[2] := $BB; // next instr
   Flags := Flags or CFlag;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s._IP := s._IP + $25;
   CompareStates(s, GetState, 'Test_jc_true');
 end;
@@ -489,7 +489,7 @@ begin
   p^[2] := $BB; // next instr
   Flags := Flags and not ZFlag;
   s := GetState;
-  ExecuteNext;
+  SingleStep;
   s._IP := s._IP + $2;
   CompareStates(s, GetState, 'Test_jz_false');
 end;
@@ -500,30 +500,33 @@ procedure Test_Sum;
 0007: A0 08 01 00            mov r1, 0
 000B: A0 08 02 00            mov r2, 0
 000F:                      loop:
-000F: 01 02 05 00            add r2, [r0]
+000F: 01 85 02 00            add.b r2, [r0]
 0013: 0C 01 00               inc r0
 0016: 0C 01 01               inc r1
 0019: 05 08 01 0A            cmp r1, 10
 001D: 8A F2                  jc loop
-001F: A0 04 02 FC 00 00 00   mov [$FC], r2
+001F: A0 24 02 FC 00 00 00   mov [$FC], r2
+0016: AA                     halt             
 }
 const
-  bytes : array[1..$26] of byte = (
+  bytes : array[1..$27] of byte = (
     $A0, $00, $00, $00, $01, $00, $00, //   mov r0, $100
     $A0, $08, $01, $00,                //   mov r1, 0
     $A0, $08, $02, $00,                //   mov r2, 0
                                        // loop:
-    $01, $02, $05, $00,                //   add r2, [r0]
+    $01, $85, $02, $00,                //   add.b r2, [r0]
     $0C, $01, $00,                     //   inc r0
     $0C, $01, $01,                     //   inc r1
     $05, $08, $01, $0A,                //   cmp r1, 10
     $8A, $F2,                          //   jc loop
-    $A0, $04, $02, $FC, $00, $00, $00  //   mov [$FC], r2
+    $A0, $24, $02, $FF, $00, $00, $00, //   mov [$FC], r2
+    $AA                                //   halt
 );
 var
   p : PBytes;
   s : TVMState;
-  i, sum : Integer;
+  i : Integer;
+  sum : Byte;
 begin
   ClearAll;
   p := GetCellAddr(_IP, SizeOf(bytes));
@@ -535,20 +538,19 @@ begin
     p^[i - 1] := i * 2;
     sum := sum + i * 2;
   end;
-  
-  s := GetState;
-  repeat
-    ExecuteNext;
-  until _IP = SizeOf(bytes);
 
-  p := GetCellAddr($FC, 4);
-  Assert(P32Cell(p)^ = sum, 'Test_Sum: sum'#13#10 +
+  s := GetState;
+  Run;
+
+  p := GetCellAddr($FF, 1);
+  Assert(P8Cell(p)^ = sum, 'Test_Sum: sum'#13#10 +
       IntToHex(sum, 8) + ' ' + IntToHex(P32Cell(p)^, 8));
-      
+
   s.Registers[0] := $10A;
   s.Registers[1] := 10;
   s.Registers[2] := sum;
-  s._IP := s._IP + SizeOf(bytes);
+  s._IP := s._IP + SizeOf(bytes) - 1;
+  s.Flags := s.Flags or ZFlag;
   CompareStates(s, GetState, 'Test_Sum');
 end;
 

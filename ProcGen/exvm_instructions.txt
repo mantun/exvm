@@ -47,18 +47,10 @@ ropsize 'IndirectShortDispl opsize
 ; --- Arithmetic Instructions -------------------------------------------------
 
 calcRightOpAddr '1Op addrR opsize
-  mov eax, _IP
-  add eax, SingleOpDispl
-  mov edx, {ropsize|{addrR}|{opsize}}
-  call GetCellAddrWrite
-  mov esi, eax
+  lea esi, [ebx + SingleOpDispl]
 
 calcRightOpAddr '2Op addrR opsize
-  mov eax, _IP
-  add eax, SourceOpDispl
-  mov edx, {ropsize|{addrR}|{opsize}}
-  call GetCellAddr
-  mov esi, eax
+  lea esi, [ebx + SourceOpDispl]
 
 calcRA 'Imm write opsize
 
@@ -117,21 +109,13 @@ calcRA 'IndirectShortDispl write opsize
   mov esi, eax
 
 calcLA 'Reg
-  mov eax, _IP
-  add eax, DestOpDispl
-  mov edx, 1
-  call GetCellAddr
-  mov edi, eax
+  lea edi, [ebx + DestOpDispl]
   xor eax, eax
   mov al, [edi]
   lea edi, [eax * 4 + RegistersFile]
 
 calcLA 'RegInd
-  mov eax, _IP
-  add eax, DestOpDispl
-  mov edx, 1
-  call GetCellAddr
-  mov edi, eax
+  lea edi, [ebx + DestOpDispl]
   xor eax, eax
   mov al, [edi]
   mov al, [eax * 4 + RegistersFile]
