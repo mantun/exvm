@@ -8,118 +8,115 @@ asm
 general_epilog
 end;
 
-size_Rel opsize
+ropsize 'Rel opsize
   1
 
-size_Imm_8
+ropsize 'Imm '8
   1
 
-size_Imm_16
+ropsize 'Imm '16
   2
 
-size_Imm_32
+ropsize 'Imm '32
   4
 
-size_Imm opsize
-  {size_Imm_{opsize}}
-
-size_Reg opsize
+ropsize 'Reg opsize
   1
 
-size_RegInd opsize
+ropsize 'RegInd opsize
   1
 
-size_RegIndDispl opsize
+ropsize 'RegIndDispl opsize
   2
 
-size_Direct opsize
+ropsize 'Direct opsize
   4
 
-size_Indirect opsize
+ropsize 'Indirect opsize
   1
 
-size_IndirectDispl opsize
+ropsize 'IndirectDispl opsize
   5
 
-size_ShortImm opsize
+ropsize 'ShortImm opsize
   1
 
-size_IndirectShortDispl opsize
+ropsize 'IndirectShortDispl opsize
   2
 
 ; --- Arithmetic Instructions -------------------------------------------------
 
-calcSourceOpAddr_1Op addrS opsize
+calcRightOpAddr '1Op addrR opsize
   mov eax, _IP
   add eax, SingleOpDispl
-  mov edx, {size_{addrS}|{opsize}}
+  mov edx, {ropsize|{addrR}|{opsize}}
   call GetCellAddrWrite
   mov esi, eax
 
-calcSourceOpAddr_2Op addrS opsize
+calcRightOpAddr '2Op addrR opsize
   mov eax, _IP
   add eax, SourceOpDispl
-  mov edx, {size_{addrS}|{opsize}}
+  mov edx, {ropsize|{addrR}|{opsize}}
   call GetCellAddr
   mov esi, eax
 
-calcSA_Imm write opsize
+calcRA 'Imm write opsize
 
-calcSA_Reg write opsize
+calcRA 'Reg write opsize
   xor eax, eax
   mov al, [esi]
   lea esi, [eax * 4 + RegistersFile]
 
-calcSA_RegInd write opsize
+calcRA 'RegInd write opsize
   xor eax, eax
   mov al, [esi]
   mov al, [eax * 4 + RegistersFile]
   lea esi, [eax * 4 + RegistersFile]
 
-calcSA_RegIndDispl write opsize
+calcRA 'RegIndDispl write opsize
   xor eax, eax
   mov al, [esi]
   mov al, [eax * 4 + RegistersFile]
   add al, [esi + 1]
   lea esi, [eax * 4 + RegistersFile]
 
-calcSA_Direct write opsize
+calcRA 'Direct write opsize
   mov eax, [esi]
-  mov edx, {size_Imm_{opsize}}
+  mov edx, {ropsize|Imm|{opsize}}
   call GetCellAddr{write}
   mov esi, eax
 
-calcSA_Indirect write opsize
+calcRA 'Indirect write opsize
   xor eax, eax
   mov al, [esi]
   mov eax, [eax * 4 + RegistersFile]
-  mov edx, {size_Imm_{opsize}}
+  mov edx, {ropsize|Imm|{opsize}}
   call GetCellAddr{write}
   mov esi, eax
 
-calcSA_IndirectDispl write opsize
+calcRA 'IndirectDispl write opsize
   xor eax, eax
   mov al, [esi]
   mov eax, [eax * 4 + RegistersFile]
   mov esi, [esi + 1]
   add eax, esi
-  mov edx, {size_Imm_{opsize}}
+  mov edx, {ropsize|Imm|{opsize}}
   call GetCellAddr{write}
   mov esi, eax
 
-calcSA_ShortImm write opsize
+calcRA 'ShortImm write opsize
 
-calcSA_IndirectShortDispl write opsize
+calcRA 'IndirectShortDispl write opsize
   xor eax, eax
   mov al, [esi]
   mov eax, [eax * 4 + RegistersFile]
-  movzx esi, byte ptr [esi + 1]
+  movsx esi, byte ptr [esi + 1]
   add eax, esi
-  mov edx, {size_Imm_{opsize}}
+  mov edx, {ropsize|Imm|{opsize}}
   call GetCellAddr{write}
   mov esi, eax
 
-calcDA_Reg
+calcLA 'Reg
   mov eax, _IP
   add eax, DestOpDispl
   mov edx, 1
@@ -129,7 +126,7 @@ calcDA_Reg
   mov al, [edi]
   lea edi, [eax * 4 + RegistersFile]
 
-calcDA_RegInd
+calcLA 'RegInd
   mov eax, _IP
   add eax, DestOpDispl
   mov edx, 1
@@ -140,211 +137,286 @@ calcDA_RegInd
   mov al, [eax * 4 + RegistersFile]
   lea edi, [eax * 4 + RegistersFile]
 
-fetchS_32
+fetchS addrR '32
   mov eax, [esi]
 
-fetchS_16
+fetchS addrR '16
   mov ax, [esi]
 
-fetchS_8
+fetchS addrR '8
   mov al, [esi]
+
+fetchS 'ShortImm '32
+  movsx eax, byte ptr [esi]
+
+fetchS 'ShortImm '16
+  movsx ax, byte ptr [esi]
 
 setFlagsZCN
   pushfd
   pop Flags
 
-perform_2op_32 operation
-  {operation} [edi], eax
+reg_A '32
+eax
 
-perform_2op_16 operation
-  {operation} [edi], ax
+reg_A '16
+ax
 
-perform_2op_8 operation
-  {operation} [edi], al
+reg_A '8
+al
 
-perform_1op_32 operation
-  {operation} [esi]
+ptr_mod '32
 
-perform_1op_16 operation
-  {operation} word ptr [esi]
+ptr_mod '16
+word ptr
 
-perform_1op_8 operation
-  {operation} byte ptr [esi]
+ptr_mod '8
+byte ptr
 
-advanceIP_1op addrS opsize
-  add _IP, 2+{size_{addrS}|{opsize}}
+fetchR addrR size
+mov {reg_A|{size}}, [esi]
 
-advanceIP_2op addrS addrD opsize
-  add _IP, 3+{size_{addrS}|{opsize}}
+fetchR 'ShortImm size
+movsx {reg_A|{size}}, byte ptr [esi]
 
-arith_instruction_2op operation addrS addrD size
-{general_prolog|{operation}_{addrS}_{addrD}_{size}}
-  {calcSourceOpAddr_2Op|{addrS}|{size}}
-  {calcSA_{addrS}||{size}}
-  {calcDA_{addrD}}
-  {fetchS_{size}}
-  {perform_2op_{size}|{operation}}
+fetchR 'ShortImm '8
+mov {reg_A|8}, [esi]
+
+perform_arith_2op addrR size 'left operation
+  {fetchR|{addrR}|{size}}
+  {operation} [edi], {reg_A|{size}}
+
+perform_arith_2op addrR size 'right operation
+  mov {reg_A|{size}}, [edi]
+  {operation} [esi], {reg_A|{size}}
+
+perform_arith_1op size operation
+  {operation} {ptr_mod|{size}} [esi]
+
+advanceIP_1op addrR opsize
+  add _IP, 2+{ropsize|{addrR}|{opsize}}
+
+advanceIP_2op addrR addrL opsize
+  add _IP, 3+{ropsize|{addrR}|{opsize}}
+
+arith_instruction_2op operation addrR addrL direction size 'def
+{general_prolog|{operation}_{addrL}_{addrR}_{direction}_{size}}
+  {calcRightOpAddr|2Op|{addrR}|{size}}
+  {calcRA|{addrR}||{size}}
+  {calcLA|{addrL}}
+  {perform_arith_2op|{addrR}|{size}|{direction}|{operation}}
   {setFlagsZCN}
-  {advanceIP_2op|{addrS}|{addrD}|{size}}
+  {advanceIP_2op|{addrR}|{addrL}|{size}}
 {general_epilog}
 
-arith_instruction_1op operation addrS size
-{general_prolog|{operation}_{addrS}_{size}}
-  {calcSourceOpAddr_1Op|{addrS}|{size}}
-  {calcSA_{addrS}|Write|{size}}
-  {perform_1op_{size}|{operation}}
+arith_instruction_1op operation addrR size 'def
+{general_prolog|{operation}_{addrR}_{size}}
+  {calcRightOpAddr|1Op|{addrR}|{size}}
+  {calcRA|{addrR}|Write|{size}}
+  {perform_arith_1op|{size}|{operation}}
   {setFlagsZCN}
   call CommitCellWrite
-  {advanceIP_1op|{addrS}|{size}}
+  {advanceIP_1op|{addrR}|{size}}
 {general_epilog}
 
-arith operation opcount
-{expand_arith_size|Imm|{operation}|{opcount}}
-{expand_arith_size|Reg|{operation}|{opcount}}
-{expand_arith_size|RegInd|{operation}|{opcount}}
-{expand_arith_size|RegIndDispl|{operation}|{opcount}}
-{expand_arith_size|Direct|{operation}|{opcount}}
-{expand_arith_size|Indirect|{operation}|{opcount}}
-{expand_arith_size|IndirectDispl|{operation}|{opcount}}
-{expand_arith_size|ShortImm|{operation}|{opcount}}
-{expand_arith_size|IndirectShortDispl|{operation}|{opcount}}
+arith operation '1op opcode
+{expand_arith_addrR|{operation}||1op|{opcode}}
 
-expand_arith_size addrS operation opcount
-{expand_arith_{opcount}|{operation}|{addrS}|8}
-{expand_arith_{opcount}|{operation}|{addrS}|16}
-{expand_arith_{opcount}|{operation}|{addrS}|32}
+arith operation '2op opcode
+{expand_arith_addrR|{operation}|left|2op|{opcode}}
+{expand_arith_addrR|{operation}|right|2op|{opcode}}
 
-expand_arith_1op operation addrS size
-{arith_instruction_1op|{operation}|{addrS}|{size}}
+expand_arith_addrR operation 'left '2op opcode
+{expand_arith_size|{operation}|Imm|left|2op|{opcode}}
+{expand_arith_size|{operation}|Reg|left|2op|{opcode}}
+{expand_arith_size|{operation}|RegInd|left|2op|{opcode}}
+{expand_arith_size|{operation}|RegIndDispl|left|2op|{opcode}}
+{expand_arith_size|{operation}|Direct|left|2op|{opcode}}
+{expand_arith_size|{operation}|Indirect|left|2op|{opcode}}
+{expand_arith_size|{operation}|IndirectDispl|left|2op|{opcode}}
+{expand_arith_size|{operation}|ShortImm|left|2op|{opcode}}
+{expand_arith_size|{operation}|IndirectShortDispl|left|2op|{opcode}}
 
-expand_arith_2op operation addrS size
-{arith_instruction_2op|{operation}|{addrS}|Reg|{size}}
-{arith_instruction_2op|{operation}|{addrS}|RegInd|{size}}
+expand_arith_addrR operation 'right '2op opcode
+{expand_arith_size|{operation}|Reg|right|2op|{opcode}}
+{expand_arith_size|{operation}|RegInd|right|2op|{opcode}}
+{expand_arith_size|{operation}|RegIndDispl|right|2op|{opcode}}
+{expand_arith_size|{operation}|Direct|right|2op|{opcode}}
+{expand_arith_size|{operation}|Indirect|right|2op|{opcode}}
+{expand_arith_size|{operation}|IndirectDispl|right|2op|{opcode}}
+{expand_arith_size|{operation}|IndirectShortDispl|right|2op|{opcode}}
+
+expand_arith_addrR operation direction '1op opcode
+{expand_arith_size|{operation}|Reg||1op|{opcode}}
+{expand_arith_size|{operation}|RegInd||1op|{opcode}}
+{expand_arith_size|{operation}|RegIndDispl||1op|{opcode}}
+{expand_arith_size|{operation}|Direct||1op|{opcode}}
+{expand_arith_size|{operation}|Indirect||1op|{opcode}}
+{expand_arith_size|{operation}|IndirectDispl||1op|{opcode}}
+{expand_arith_size|{operation}|IndirectShortDispl||1op|{opcode}}
+
+expand_arith_size operation addrR direction opcount opcode
+{expand_arith|{opcount}|{operation}|{addrR}|{direction}|32|{opcode}}
+{expand_arith|{opcount}|{operation}|{addrR}|{direction}|16|{opcode}}
+{expand_arith|{opcount}|{operation}|{addrR}|{direction}|8|{opcode}}
+
+expand_arith '1op operation addrR direction size opcode
+{arith_instruction_1op|{operation}|{addrR}|{size}|{opcode}}
+
+expand_arith '2op operation addrR direction size opcode
+{arith_instruction_2op|{operation}|{addrR}|Reg|{direction}|{size}|{opcode}}
+{arith_instruction_2op|{operation}|{addrR}|RegInd|{direction}|{size}|{opcode}}
 
 ; --- Flow Control Instructions -----------------------------------------------
 
-branch_to_target_rel addrS
+branch_to_target 'Rel
   mov esi, _IP
   mov eax, esi
   inc eax
   mov edx, 1
   call GetCellAddr
-  movzx eax, byte ptr [eax]
+  movsx eax, byte ptr [eax]
   add esi, eax
   mov _IP, esi
 
-branch_to_target_abs addrS
-  {calcSourceOpAddr_1Op|{addrS}|32}
-  {calcSA_{addrS}||32}
-  {fetchS_32}
+branch_to_target addrR
+  {calcRightOpAddr|1Op|{addrR}|32}
+  {calcRA|{addrR}||32}
+  {fetchS|{addrR}|32}
   mov _IP, eax
 
-branch_code_size_abs
+branch_code_size addrR
   2
 
-branch_code_size_rel
+branch_code_size 'Rel
   1
 
 check_cond flag neg
   test Flags, {flag}
   j{neg}z @@dont_branch
 
-check_uncond flag neg
+check_cond '- neg
 
-store_ret_addr_jmp addrS abs_rel
+branch_instr_size addrR
+{branch_code_size|{addrR}}+{ropsize|{addrR}|32}
 
-store_ret_addr_call addrS abs_rel
+store_ret_addr operation addrR
+
+store_ret_addr 'call addrR
   sub _SP, 4
   mov eax, _SP
   mov edx, 4
   call GetCellAddrWrite
   mov esi, eax
   mov eax, _IP
-  add eax, {branch_code_size_{abs_rel}}+{size_{addrS}|32}
+  add eax, {branch_instr_size|{addrR}}
   mov [esi], eax
   call CommitCellWrite
 
-branch_instruction operation addrS abs_rel cond neg flag jmp_call
-{general_prolog|{operation}_{addrS}_{abs_rel}}
-  {check_{cond}|{flag}|{neg}}
-  {store_ret_addr_{jmp_call}|{addrS}|{abs_rel}}
-  {branch_to_target_{abs_rel}|{addrS}}
+advanceIP_branch '- addrR
+
+advanceIP_branch flag addrR
 @@dont_branch:
+  add _IP, {branch_instr_size|{addrR}}
+
+branch_instruction_rel operation flag neg 'def
+{branch_instruction|{operation}|Rel|{flag}|{neg}|def}
+
+branch_instruction_abs operation addrR flag neg 'def
+{branch_instruction|{operation}|{addrR}|{flag}|{neg}|def}
+
+branch_instruction operation addrR flag neg 'def
+{general_prolog|{operation}_{addrR}}
+  {check_cond|{flag}|{neg}}
+  {store_ret_addr|{operation}|{addrR}}
+  {branch_to_target|{addrR}}
+  ret
+  {advanceIP_branch|{flag}|{addrR}}
 {general_epilog}
 
-branch_rel oper
-{branch_instruction|{oper}|Rel|rel|uncond|||{oper}}
+branch_rel oper 'def
+{branch_instruction_rel|{oper}|-||def}
 
-branch_abs oper
-{branch_instruction|{oper}|Imm|abs|uncond|||{oper}}
-{branch_instruction|{oper}|Reg|abs|uncond|||{oper}}
-{branch_instruction|{oper}|RegInd|abs|uncond|||{oper}}
-{branch_instruction|{oper}|RegIndDispl|abs|uncond|||{oper}}
-{branch_instruction|{oper}|Direct|abs|uncond|||{oper}}
-{branch_instruction|{oper}|Indirect|abs|uncond|||{oper}}
-{branch_instruction|{oper}|IndirectDispl|abs|uncond|||{oper}}
+branch_abs oper opcode
+{branch_instruction_abs|{oper}|Imm|-||{opcode}}
+{branch_instruction_abs|{oper}|Reg|-||{opcode}}
+{branch_instruction_abs|{oper}|RegInd|-||{opcode}}
+{branch_instruction_abs|{oper}|RegIndDispl|-||{opcode}}
+{branch_instruction_abs|{oper}|Direct|-||{opcode}}
+{branch_instruction_abs|{oper}|Indirect|-||{opcode}}
+{branch_instruction_abs|{oper}|IndirectDispl|-||{opcode}}
+{branch_instruction_abs|{oper}|IndirectShortDispl|-||{opcode}}
 
-branch_cond oper neg flag
-{branch_instruction|{oper}|Rel|rel|cond|{neg}|{flag}|jmp}
+branch_cond oper flag neg opcode
+{branch_instruction_rel|{oper}|{flag}|{neg}|{opcode}}
 
 ; --- Opcodes -----------------------------------------------------------------
 
-opc_addrS_
+opc_addrR n/a
   0
 
-opc_addrS_Imm
+opc_addrR 'Imm
   $0
 
-opc_addrS_Reg
+opc_addrR 'Reg
   $1
 
-opc_addrS_RegInd
+opc_addrR 'RegInd
   $2
 
-opc_addrS_RegIndDispl
+opc_addrR 'RegIndDispl
   $3
 
-opc_addrS_Direct
+opc_addrR 'Direct
   $4
 
-opc_addrS_Indirect
+opc_addrR 'Indirect
   $5
 
-opc_addrS_IndirectDispl
+opc_addrR 'IndirectDispl
   $6
 
-opc_addrS_Rel
+opc_addrR 'Rel
   $7
 
-opc_addrS_ShortImm
+opc_addrR 'ShortImm
   $8
 
-opc_addrS_IndirectShortDispl
+opc_addrR 'IndirectShortDispl
   $E
 
-opc_addrD_
+opc_addrL n/a
   0
 
-opc_addrD_Reg
+opc_addrL 'Reg
   $00
 
-opc_addrD_RegInd
+opc_addrL 'RegInd
   $10
 
-opc_size_
+opc_size n/a
   0
 
-opc_size_32
+opc_size '32
   $00
 
-opc_size_16
+opc_size '16
   $40
 
-opc_size_8
+opc_size '8
   $80
 
-build_opcode opcode addrS addrD size
-  {opcode} shl 8 or {opc_addrS_{addrS}} or {opc_addrD_{addrD}} or {opc_size_{size}}
+opc_dir n/a
+  0
+
+opc_dir 'left
+  $00
+
+opc_dir 'right
+  $20
+
+build_opcode opcode addrR addrL direction size
+  {opcode} shl 8 or {opc_addrR|{addrR}} or {opc_addrL|{addrL}} or {opc_size|{size}} or {opc_dir|{direction}}
 
 itable_put_single name opcode
   InstructionTable[{opcode}] := @{name};
@@ -353,49 +425,19 @@ itable_put_bulk name opcode
   for i := 0 to $FF do
     InstructionTable[{opcode} shl 8 + i] := @{name};
 
-opc_arith operation opcount opcode
-  {opc_expand_arith_size|Imm|{operation}|{opcount}|{opcode}}
-  {opc_expand_arith_size|ShortImm|{operation}|{opcount}|{opcode}}
-  {opc_expand_arith_size|Reg|{operation}|{opcount}|{opcode}}
-  {opc_expand_arith_size|RegInd|{operation}|{opcount}|{opcode}}
-  {opc_expand_arith_size|RegIndDispl|{operation}|{opcount}|{opcode}}
-  {opc_expand_arith_size|Direct|{operation}|{opcount}|{opcode}}
-  {opc_expand_arith_size|Indirect|{operation}|{opcount}|{opcode}}
-  {opc_expand_arith_size|IndirectDispl|{operation}|{opcount}|{opcode}}
-  {opc_expand_arith_size|IndirectShortDispl|{operation}|{opcount}|{opcode}}
+arith_instruction_2op operation addrR addrL direction size opcode
+  {itable_put_single|{operation}_{addrL}_{addrR}_{direction}_{size}|{build_opcode|{opcode}|{addrR}|{addrL}|{direction}|{size}}}
 
-opc_expand_arith_size addrS operation opcount opcode
-  {opc_expand_arith_{opcount}|{operation}|{addrS}|8|{opcode}}
-  {opc_expand_arith_{opcount}|{operation}|{addrS}|16|{opcode}}
-  {opc_expand_arith_{opcount}|{operation}|{addrS}|32|{opcode}}
+arith_instruction_1op operation addrR size opcode
+  {itable_put_single|{operation}_{addrR}_{size}|{build_opcode|{opcode}|{addrR}|||{size}}}
 
-opc_expand_arith_1op operation addrS size opcode
-  {opc_arith_instruction_1op|{operation}|{addrS}|{size}|{opcode}}
+branch_instruction_rel operation flag neg opcode
 
-opc_expand_arith_2op operation addrS size opcode
-  {opc_arith_instruction_2op|{operation}|{addrS}|Reg|{size}|{opcode}}
-  {opc_arith_instruction_2op|{operation}|{addrS}|RegInd|{size}|{opcode}}
+branch_instruction_abs operation addrR flag neg opcode
+  {itable_put_single|{operation}_{addrR}|{build_opcode|{opcode}|{addrR}|||}}
 
-opc_arith_instruction_2op operation addrS addrD size opcode
-  {itable_put_single|{operation}_{addrS}_{addrD}_{size}|{build_opcode|{opcode}|{addrS}|{addrD}|{size}}}
-
-opc_arith_instruction_1op operation addrS size opcode
-  {itable_put_single|{operation}_{addrS}_{size}|{build_opcode|{opcode}|{addrS}||{size}}}
-
-opc_branch_instruction_abs operation addrS opcode
-  {itable_put_single|{operation}_{addrS}_abs|{build_opcode|{opcode}|{addrS}||}}
-
-opc_branch_rel operation opcode
-  {itable_put_bulk|{operation}_Rel_rel|{opcode}}
-
-opc_branch_abs oper opcode
-  {opc_branch_instruction_abs|{oper}|Imm|{opcode}}
-  {opc_branch_instruction_abs|{oper}|Reg|{opcode}}
-  {opc_branch_instruction_abs|{oper}|RegInd|{opcode}}
-  {opc_branch_instruction_abs|{oper}|RegIndDispl|{opcode}}
-  {opc_branch_instruction_abs|{oper}|Direct|{opcode}}
-  {opc_branch_instruction_abs|{oper}|Indirect|{opcode}}
-  {opc_branch_instruction_abs|{oper}|IndirectDispl|{opcode}}
+branch_rel operation opcode
+  {itable_put_bulk|{operation}_Rel|{opcode}}
 
 ; --- Target ------------------------------------------------------------------
 
@@ -409,55 +451,55 @@ const
   SourceOpDispl = 3;
   DestOpDispl = 2;
   SingleOpDispl = 2;
-{arith|add|2op}
-{arith|adc|2op}
-{arith|sub|2op}
-{arith|sbb|2op}
-{arith|cmp|2op}
-{arith|and|2op}
-{arith|or|2op}
-{arith|xor|2op}
-{arith|not|1op}
-{arith|neg|1op}
-{arith|inc|1op}
-{arith|dec|1op}
-{arith|mov|2op}
-{branch_abs|jmp}
-{branch_rel|jmp}
-{branch_abs|call}
-{branch_rel|call}
-{branch_cond|jz||ZFlag}
-{branch_cond|jnz|n|ZFlag}
-{branch_cond|jc||CFlag}
-{branch_cond|jnc|n|CFlag}
-{branch_cond|jn||NFlag}
-{branch_cond|jp|n|NFlag}
+{arith|add|2op|def}
+{arith|adc|2op|def}
+{arith|sub|2op|def}
+{arith|sbb|2op|def}
+{arith|cmp|2op|def}
+{arith|and|2op|def}
+{arith|or|2op|def}
+{arith|xor|2op|def}
+{arith|not|1op|def}
+{arith|neg|1op|def}
+{arith|inc|1op|def}
+{arith|dec|1op|def}
+{arith|mov|2op|def}
+{branch_rel|jmp|def}
+{branch_abs|jmp|def}
+{branch_rel|call|def}
+{branch_abs|call|def}
+{branch_cond|jz|ZFlag||def}
+{branch_cond|jnz|ZFlag|n|def}
+{branch_cond|jc|CFlag||def}
+{branch_cond|jnc|CFlag|n|def}
+{branch_cond|jn|NFlag||def}
+{branch_cond|jp|NFlag|n|def}
 procedure InitInstructionTable;
 var i : Integer;
 begin
-  {opc_arith|add|2op|$01}
-  {opc_arith|adc|2op|$02}
-  {opc_arith|sub|2op|$03}
-  {opc_arith|sbb|2op|$04}
-  {opc_arith|cmp|2op|$05}
-  {opc_arith|and|2op|$07}
-  {opc_arith|or|2op|$08}
-  {opc_arith|xor|2op|$09}
-  {opc_arith|not|1op|$0A}
-  {opc_arith|neg|1op|$0B}
-  {opc_arith|inc|1op|$0C}
-  {opc_arith|dec|1op|$0D}
-  {opc_arith|mov|2op|$A0}
-  {opc_branch_rel|jmp|$80}
-  {opc_branch_abs|jmp|$81}
-  {opc_branch_rel|call|$82}
-  {opc_branch_abs|call|$83}
-  {opc_branch_rel|jz|$88}
-  {opc_branch_rel|jnz|$89}
-  {opc_branch_rel|jc|$8A}
-  {opc_branch_rel|jnc|$8B}
-  {opc_branch_rel|jn|$8C}
-  {opc_branch_rel|jp|$8D}
+  {arith|add|2op|$01}
+  {arith|adc|2op|$02}
+  {arith|sub|2op|$03}
+  {arith|sbb|2op|$04}
+  {arith|cmp|2op|$05}
+  {arith|and|2op|$07}
+  {arith|or|2op|$08}
+  {arith|xor|2op|$09}
+  {arith|not|1op|$0A}
+  {arith|neg|1op|$0B}
+  {arith|inc|1op|$0C}
+  {arith|dec|1op|$0D}
+  {arith|mov|2op|$A0}
+  {branch_rel|jmp|$80}
+  {branch_abs|jmp|$81}
+  {branch_rel|call|$82}
+  {branch_abs|call|$83}
+  {branch_rel|jz|$88}
+  {branch_rel|jnz|$89}
+  {branch_rel|jc|$8A}
+  {branch_rel|jnc|$8B}
+  {branch_rel|jn|$8C}
+  {branch_rel|jp|$8D}
 end;
 end.
 

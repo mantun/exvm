@@ -63,7 +63,7 @@ opcode	Mn	oper	operation		flags
 07	and	R, A	R <- R & A		ZN
 08	or	R, A	R <- R | A		ZN
 09	xor	R, A	R <- R ^ A		ZN
-0A	not	A	A <- ~A			ZN
+0A	not	A	A <- ~A			-
 0B	neg	A	A <- -A			ZN
 0C	inc	A	A <- A + 1		ZN
 0D	dec	A	A <- A - 1		ZN
@@ -83,12 +83,12 @@ Flow control:
 83	call	A	STACK <- IP + isz	-
 			IP <- A
 84	ret		IP <- STACK		-
-88	jz	K	if (Z) IP <- IP + K(8) + isz
-89	jnz	K	if (!Z) IP <- IP + K(8) + isz
-8A	jc	K	if (C) IP <- IP + K(8) + isz
-8B	jnc	K	if (!C) IP <- IP + K(8) + isz
-8C	jn	K	if (N) IP <- IP + K(8) + isz
-8D	jp	K	if (!N) IP <- IP + K(8) + isz
+88	jz	K	if (Z) IP <- IP + K(8)  -
+89	jnz	K	if (!Z) IP <- IP + K(8) -
+8A	jc	K	if (C) IP <- IP + K(8)  -
+8B	jnc	K	if (!C) IP <- IP + K(8) -
+8C	jn	K	if (N) IP <- IP + K(8)  -
+8D	jp	K	if (!N) IP <- IP + K(8) -
 90	nop		-			-
 00	break		breaks			-
 CC	break		breaks			-
@@ -96,13 +96,13 @@ A5	halt		stops the VM
 
 Data transfer:
 A0	mov	R, A	R <- A			-
-A1	mov	A, R	A <- R			-
-A2	in?
-A3	out?
-A4	push	A	STACK <- A		-
-A5	pop	A	A <- STACK		-
-A6	pushf		STACK <- FLAGS		-
-A7	popf		FLAGS <- STACK 		*
+A0	mov	A, R	A <- R			-
+A3	in?
+A4	out?
+A5	push	A	STACK <- A		-
+A6	pop	A	A <- STACK		-
+A7	pushf		STACK <- FLAGS		-
+A8	popf		FLAGS <- STACK 		*
 
 Bitwise:
 B0	shl	A, K	A <- A << K(8)		ZCN
@@ -118,21 +118,22 @@ BA	cln		N <- 0			N
 BB	stn		N <- 1			N
 
 Instruction Opcodes (bits):
-cccc cccc ss_d aaaa *operands*
+cccc cccc ssdl rrrr *operands*
 
 c - opcode
 s - operand size (missing for no-operand instructions)
-a - addressing mode (for source in 2-operand instructions, missing for no-operand instructions)
-d - addressing mode (for destination in 2-operand instructions, missing for no-operand instructions)
-_ - reserved
+d - direction (0 = right to left; 1 = left to right)
+r - addressing mode (for source in 2-operand instructions, missing for no-operand instructions)
+l - addressing mode (for destination in 2-operand instructions, missing for no-operand instructions)
 
 Size values:
+ss
 00	32 bit
 01	16 bit
 10	8 bit
 
 Addressing mode values and operands:
-ss	aaaa	addressing mode				operand bytes
+ss	rrrr	addressing mode				operand bytes
 00	0000	immediate				KKKK
 01	0000	immediate				KK
 10	0000	immediate				K
@@ -142,14 +143,11 @@ xx	0011	register indirect + displacement	RK
 xx	0100	direct					KKKK
 xx	0101	indirect				R
 xx	0110	indirect + displacement			RKKKK
-00	0111	relative				KKKK
-01	0111	relative				KK
-10	0111	relative				K
 xx	1000	short-immediate				K
 xx	1110	indirect + short-displacement		RK
 
 Destination operand addressing:
-d
+l
 0 - register
 1 - register indirect
 

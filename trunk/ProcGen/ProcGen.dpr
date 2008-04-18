@@ -5,8 +5,7 @@ program ProcGen;
 uses
   SysUtils,
   Classes,
-  StrUtils,
-  test in 'test.pas';
+  StrUtils;
 
 type
   TParser = class
@@ -38,21 +37,49 @@ type
     property Name : String read FName;
     constructor Create(head, body : String);
     function Expand(params : array of String) : String;
+    function GetParamMatches(params : array of String) : Integer;
+    function ToString : String;
   end;
 
 { Globals }
 
 var
-  Macros : TStringList;
+  Macros : TList;
 
-function FindMacro(name : String) : TMacro;
+function ArrayToString(params : array of String) : String;
 var i : Integer;
 begin
-  i := Macros.IndexOf(name);
-  if i < 0 then
-    Result := nil
-  else
-    Result := TMacro(Macros.Objects[i]);
+  Result := '';
+  for i := Low(params) to High(params) do
+    if Result = '' then
+      Result := params[i]
+    else
+      Result := Result + ' ' + params[i];
+end;
+
+function FindMacro(const name : String; const params : array of String) : TMacro;
+var
+  i, mr, MatchRank : Integer;
+  m : TMacro;
+begin
+  Result := nil;
+  MatchRank := -1;
+  for i := 0 to Macros.Count - 1 do begin
+    m := TMacro(Macros[i]);
+    if m.Name = name then begin
+      mr := m.GetParamMatches(params);
+      if mr > MatchRank then begin
+        MatchRank := mr;
+        Result := m;
+      end else if (mr = MatchRank) and (mr <> -1) then begin
+        raise Exception.Create('Ambiguous macro invocation: '#13#10'  1: '
+                + Result.ToString + #13#10'  2: '
+                + m.ToString + #13#10'  params: ' + ArrayToString(params));
+      end;
+    end;
+  end;
+  if Result = nil then
+    raise Exception.Create('Cannot match macro invocation: ' + name + ' ' + ArrayToString(params));
 end;
 
 { TParser }
@@ -92,9 +119,10 @@ end;
 
 function TParser.StringEntity : String;
 var
-  invocation : Array of String;
+  invocation, params : Array of String;
   macro : TMacro;
 begin
+  params := nil; // compiler complains without this?
   if FString[FTokPos[FCurrTok]] = '{' then begin
     Inc(FCurrTok);
     if FCurrTok >= Length(FTokPos) then
@@ -113,10 +141,9 @@ begin
     if FString[FTokPos[FCurrTok]] <> '}' then
       raise Exception.Create('Missing }');
     Inc(FCurrTok);
-    macro := FindMacro(invocation[0]);
-    if macro = nil then
-      raise Exception.Create('Unknown macro ' + invocation[0]);
-    Result := macro.Expand(Copy(invocation, 1, Length(invocation) - 1));
+    params := Copy(invocation, 1, Length(invocation) - 1);
+    macro := FindMacro(invocation[0], params);
+    Result := macro.Expand(params);
   end else begin
     Result := Copy(FString, FTokPos[FCurrTok], FTokLen[FCurrTok]);
     Inc(FCurrTok);
@@ -176,19 +203,45 @@ begin
   if Length(params) <> Length(FParams) then
     raise Exception.Create('Bad number of params in invocation of ' + FName);
   for i := 0 to High(FParams) do
-    Result := StringReplace(Result, '{' + FParams[i] + '}', params[i], [rfReplaceAll]);
-  if Result = '' then exit;  
+    if FParams[i][1] <> '''' then
+      Result := StringReplace(Result, '{' + FParams[i] + '}', params[i], [rfReplaceAll]);
+  if Result = '' then exit;
   p := TParser.Create(Result);
   try
     try
       Result := p.Parse;
     except
-      Exception(ExceptObject).Message := Exception(ExceptObject).Message + #13#10 + FName;
+      Exception(ExceptObject).Message := Exception(ExceptObject).Message + #13#10'called in ' + ToString;
       raise;
     end;
   finally
     p.Free;
   end;
+end;
+
+function TMacro.GetParamMatches(params : array of String) : Integer;
+var i : Integer;
+begin
+  if Length(params) <> Length(FParams) then begin
+    Result := -1;
+    Exit;
+  end;
+  Result := 0;
+  for i := 0 to High(FParams) do
+    if FParams[i][1] = '''' then
+      if FParams[i] = '''' + params[i] then
+        Inc(Result, Length(FParams) + 1)
+      else begin
+        Result := -1;
+        Exit;
+      end;
+end;
+
+function TMacro.ToString : String;
+begin
+  Result := FName;
+  if Length(FParams) <> 0 then
+    Result := Result + ' ' + ArrayToString(FParams);
 end;
 
 var
@@ -198,28 +251,31 @@ var
   m : TMacro;
 begin
   if ParamCount = 0 then Exit;
-  Macros := TStringList.Create;
+  Macros := TList.Create;
   Assign(t, ParamStr(1));
   Reset(t);
   sl := TStringList.Create;
   try
     while not EOF(t) do begin
       sl.Clear;
-      ReadLn(t, head);
+      repeat
+        ReadLn(t, head);
+      until (head <> '') and (head[1] <> ';');
       while not EOF(t) do begin
         ReadLn(t, s);
         if s = '' then Break;
-        sl.Add(s);
+        if s[1] <> ';' then
+          sl.Add(s);
       end;
       s := sl.GetText;
       m := TMacro.Create(head, Trim(s));
-      Macros.AddObject(m.Name, m);
+      Macros.Add(m);
     end;
   finally
     sl.Free;
     CloseFile(t);
   end;
-  m := FindMacro('target');
+  m := FindMacro('target', []);
   if m = nil then
     raise Exception.Create('Macro named ''target'' must be specified');
   WriteLn(m.Expand([]));

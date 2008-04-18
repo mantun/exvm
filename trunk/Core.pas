@@ -7,20 +7,19 @@ uses SysUtils, Common;
 var
   _IP : TAddress;
   _SP : TAddress;
-  Flags : Byte;
+  Flags : Cardinal;
   InstructionTable : Array[Word] of procedure;
 
 const
-  CFlag = 4;
-  NFlag = 2;
-  ZFlag = 1;
+  CFlag = 1;
+  NFlag = 1 shl 7;
+  ZFlag = 1 shl 6;
 
 type
   EBadInstructionException = class(Exception);
 
 procedure Reset;
 procedure ExecuteNext;
-procedure InvalidInstruction;
 
 implementation
 
@@ -44,4 +43,14 @@ begin
           + IntToHex(_IP, 8) + ': ' + IntToHex(Swap(P16Cell(GetCellAddr(_IP, 2))^), 4));
 end;
 
+procedure InitEmptyInstructionTable;
+var i : Integer;
+begin
+  for i := Low(InstructionTable) to High(InstructionTable) do
+    InstructionTable[i] := @InvalidInstruction;
+end;
+
+initialization
+  InitEmptyInstructionTable;
+  Instructions.InitInstructionTable;
 end.
