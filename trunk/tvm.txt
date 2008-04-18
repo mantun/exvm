@@ -92,7 +92,7 @@ Flow control:
 90	nop		-			-
 00	break		breaks			-
 CC	break		breaks			-
-A5	halt		stops the VM
+AA	halt		stops the VM
 
 Data transfer:
 A0	mov	R, A	R <- A			-
