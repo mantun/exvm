@@ -49,30 +49,30 @@ N - negative flag
 Z - zero flag
 SP - stack pointer
 IP - instruction pointer
-FLAGS - flags register (containing Z, C, N)
+FLAGS - flags register (containing Z, C, N, O)
 isz - instruction size
 
 Arithmetic:
 opcode	Mn	oper	operation		flags
-01	add	R, A	R <- R + A		ZCN
-02	adc	R, A	R <- R + A + C		ZCN
-03	sub	R, A	R <- R - A		ZCN
-04	sbb	R, A	R <- R - A - C		ZCN
-05	cmp	R, A	R - A			ZCN
-;n/a for now 06	cpc	R, A	R - A - C		ZCN
-07	and	R, A	R <- R & A		ZN
-08	or	R, A	R <- R | A		ZN
-09	xor	R, A	R <- R ^ A		ZN
+01	add	R, A	R <- R + A		ZCNO
+02	adc	R, A	R <- R + A + C		ZCNO
+03	sub	R, A	R <- R - A		ZCNO
+04	sbb	R, A	R <- R - A - C		ZCNO
+05	cmp	R, A	R - A			ZCNO
+;n/a for now 06	cpc	R, A	R - A - C		?
+07	and	R, A	R <- R & A		ZCNO
+08	or	R, A	R <- R | A		ZCNO
+09	xor	R, A	R <- R ^ A		ZCNO
 0A	not	A	A <- ~A			-
-0B	neg	A	A <- -A			ZN
-0C	inc	A	A <- A + 1		ZN
-0D	dec	A	A <- A - 1		ZN
-;n/a for now 0E	test	A	A <- A & A		ZN
+0B	neg	A	A <- -A			ZCNO
+0C	inc	A	A <- A + 1		ZNO
+0D	dec	A	A <- A - 1		ZNO
+;n/a for now 0E	test	A	A <- A & A		ZCNO
 ;n/a for now 0F	clr	A	A <- 0			-
 
-10?	mul	R, A	Rn:Rn+1 <- R * A	ZC
-10?	mulw	Rw, A	R <- Rw * A		ZC
-10?	mulb	Rb, A	Rw <- Rb * A		ZC
+10?	mul	R, A	Rn:Rn+1 <- R * A	?
+10?	mulw	Rw, A	R <- Rw * A		?
+10?	mulb	Rb, A	Rw <- Rb * A		?
 11?	div?
 
 Flow control:
@@ -87,6 +87,8 @@ Flow control:
 89	jnz	K	if (!Z) IP <- IP + K(8) -
 8A	jc	K	if (C) IP <- IP + K(8)  -
 8B	jnc	K	if (!C) IP <- IP + K(8) -
+8A	jge	K	if (O=C) IP <- IP + K(8)  -
+8B	jl	K	if (O!=C) IP <- IP + K(8) -
 8C	jn	K	if (N) IP <- IP + K(8)  -
 8D	jp	K	if (!N) IP <- IP + K(8) -
 90	nop		-			-
