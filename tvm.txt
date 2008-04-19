@@ -122,9 +122,9 @@ cccc cccc ssdl rrrr *operands*
 
 c - opcode
 s - operand size (missing for no-operand instructions)
-d - direction (0 = right to left; 1 = left to right)
-r - addressing mode (for source in 2-operand instructions, missing for no-operand instructions)
-l - addressing mode (for destination in 2-operand instructions, missing for no-operand instructions)
+d - direction (0 = right to left; 1 = left to right, missing for no-operand instructions)
+r - addressing mode (for right in 1- or 2-operand instructions, missing for no-operand instructions)
+l - addressing mode (for left in 2-operand instructions, missing for no-operand instructions)
 
 Size values:
 ss
