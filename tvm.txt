@@ -47,6 +47,7 @@ A - any type of addressing
 C - carry flag
 N - negative flag
 Z - zero flag
+O - overflow flag
 SP - stack pointer
 IP - instruction pointer
 FLAGS - flags register (containing Z, C, N, O)
@@ -59,7 +60,7 @@ opcode	Mn	oper	operation		flags
 03	sub	R, A	R <- R - A		ZCNO
 04	sbb	R, A	R <- R - A - C		ZCNO
 05	cmp	R, A	R - A			ZCNO
-;n/a for now 06	cpc	R, A	R - A - C		?
+06	cpc	R, A	R - A - C		?
 07	and	R, A	R <- R & A		ZCNO
 08	or	R, A	R <- R | A		ZCNO
 09	xor	R, A	R <- R ^ A		ZCNO
@@ -67,8 +68,8 @@ opcode	Mn	oper	operation		flags
 0B	neg	A	A <- -A			ZCNO
 0C	inc	A	A <- A + 1		ZNO
 0D	dec	A	A <- A - 1		ZNO
-;n/a for now 0E	test	A	A <- A & A		ZCNO
-;n/a for now 0F	clr	A	A <- 0			-
+0E	test	R, A	R & A			ZCNO
+0F	clr	A	A <- 0			-
 
 10?	mul	R, A	Rn:Rn+1 <- R * A	?
 10?	mulw	Rw, A	R <- Rw * A		?
@@ -87,10 +88,10 @@ Flow control:
 89	jnz	K	if (!Z) IP <- IP + K(8) -
 8A	jc	K	if (C) IP <- IP + K(8)  -
 8B	jnc	K	if (!C) IP <- IP + K(8) -
-8A	jge	K	if (O=C) IP <- IP + K(8)  -
-8B	jl	K	if (O!=C) IP <- IP + K(8) -
 8C	jn	K	if (N) IP <- IP + K(8)  -
 8D	jp	K	if (!N) IP <- IP + K(8) -
+8E	jge	K	if (O=C) IP <- IP + K(8)  -
+8F	jl	K	if (O!=C) IP <- IP + K(8) -
 90	nop		-			-
 00	break		breaks			-
 CC	break		breaks			-
@@ -107,17 +108,21 @@ A7	pushf		STACK <- FLAGS		-
 A8	popf		FLAGS <- STACK 		*
 
 Bitwise:
-B0	shl	A, K	A <- A << K(8)		ZCN
-B1	shr	A, K	A <- A >> K(8)		ZCN
-B2	sar	A, K	A <- A >>> K(8)		ZCN
-B3	rol	A, K	A <- A << 1 | C		ZCN
-B4	ror	A, K	A <- A >> 1 | C	<< 7	ZCN
-B6	clz		Z <- 0			Z
-B7	stz		Z <- 1			Z
-B8	clc		C <- 0			C
-B9	stc		C <- 1			C
-BA	cln		N <- 0			N
-BB	stn		N <- 1			N
+B0	shl	A, K	A <- A << K(8)		ZCNO
+B1	shr	A, K	A <- A >> K(8)		ZCNO
+B2	sar	A, K	A <- A >>> K(8)		ZCNO
+B3	rol	A, K	A <- A << 1 | A >> 7	CO
+B4	ror	A, K	A <- A >> 1 | A << 7	CO
+B5	rcl	A, K	A <- A << 1 | C		CO
+B6	rcr	A, K	A <- A >> 1 | C << 7	CO
+B7	clz		Z <- 0			Z
+B8	stz		Z <- 1			Z
+B9	clc		C <- 0			C
+BA	stc		C <- 1			C
+BB	cln		N <- 0			N
+BC	stn		N <- 1			N
+BD	clo		O <- 0			O
+BE	sto		O <- 1			O
 
 Instruction Opcodes (bits):
 cccc cccc ssdl rrrr *operands*

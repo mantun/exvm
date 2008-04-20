@@ -7,13 +7,14 @@ uses SysUtils, Common;
 var
   _IP : TAddress;
   _SP : TAddress;
-  Flags : Cardinal;
+  _Flags : Cardinal;
   InstructionTable : Array[Word] of procedure;
 
 const
-  CFlag = 1;
-  NFlag = 1 shl 7;
-  ZFlag = 1 shl 6;
+  _CF = 1;
+  _NF = 1 shl 7;
+  _ZF = 1 shl 6;
+  _OF = 1 shl 11;
 
 type
   EBadInstructionException = class(Exception);
@@ -79,7 +80,7 @@ procedure Reset;
 begin
   _IP := 0;
   _SP := 0;
-  Flags := 0;
+  _Flags := 0;
   Stopped := True;
 end;
 

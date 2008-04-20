@@ -136,9 +136,41 @@ fetchS 'ShortImm '32
 fetchS 'ShortImm '16
   movsx ax, byte ptr [esi]
 
-setFlagsZCN
+arith_set_flags_ZNO
   pushfd
-  pop Flags
+  pop eax
+  and eax, _ZF or _NF or _OF
+  and _Flags, not _ZF or _NF or _OF
+  or _Flags, eax
+
+arith_set_flags 'not
+
+arith_set_flags 'clr
+
+arith_set_flags 'dec
+{arith_set_flags_ZNO}
+
+arith_set_flags 'inc
+{arith_set_flags_ZNO}
+
+arith_set_flags operation
+  pushfd
+  pop _Flags
+
+arith_prepare_flags_C
+  clc
+  test _Flags, _CF
+  jz @@noC
+  stc
+@@noC:
+
+arith_prepare_flags 'sbb
+{arith_prepare_flags_C}
+
+arith_prepare_flags 'cpc
+{arith_prepare_flags_C}
+
+arith_prepare_flags operation
 
 reg_A '32
 eax
@@ -166,6 +198,14 @@ movsx {reg_A|{size}}, byte ptr [esi]
 fetchR 'ShortImm '8
 mov {reg_A|8}, [esi]
 
+perform_arith_2op addrR size 'left 'cpc
+  mov {reg_A|{size}}, [edi]
+  sbb {reg_A|{size}}, [esi]
+
+perform_arith_2op addrR size 'right 'cpc
+  {fetchR|{addrR}|{size}}
+  sbb {reg_A|{size}}, [edi]
+
 perform_arith_2op addrR size 'left operation
   {fetchR|{addrR}|{size}}
   {operation} [edi], {reg_A|{size}}
@@ -177,19 +217,49 @@ perform_arith_2op addrR size 'right operation
 perform_arith_1op size operation
   {operation} {ptr_mod|{size}} [esi]
 
+perform_arith_1op size 'clr
+  mov {ptr_mod|{size}} [esi], 0
+
 advanceIP_1op addrR opsize
   add _IP, 2+{ropsize|{addrR}|{opsize}}
 
 advanceIP_2op addrR addrL opsize
   add _IP, 3+{ropsize|{addrR}|{opsize}}
 
+isWrite operation 'left
+
+isWrite operation 'right
+Write
+
+isWrite 'cmp 'right
+
+isWrite 'cpc 'right
+
+isWrite 'test 'right
+
+commit_write addrR isWrite
+
+commit_write 'Direct 'Write
+  call CommitCellWrite
+
+commit_write 'Indirect 'Write
+  call CommitCellWrite
+
+commit_write 'IndirectDispl 'Write
+  call CommitCellWrite
+
+commit_write 'IndirectShortDispl 'Write
+  call CommitCellWrite
+
 arith_instruction_2op operation addrR addrL direction size 'def
 {general_prolog|{operation}_{addrL}_{addrR}_{direction}_{size}}
   {calcRightOpAddr|2Op|{addrR}|{size}}
-  {calcRA|{addrR}||{size}}
+  {calcRA|{addrR}|{isWrite|{operation}|{direction}}|{size}}
   {calcLA|{addrL}}
+  {arith_prepare_flags|{operation}}
   {perform_arith_2op|{addrR}|{size}|{direction}|{operation}}
-  {setFlagsZCN}
+  {arith_set_flags|{operation}}
+  {commit_write|{addrR}|{isWrite|{operation}|{direction}}}
   {advanceIP_2op|{addrR}|{addrL}|{size}}
 {general_epilog}
 
@@ -197,9 +267,10 @@ arith_instruction_1op operation addrR size 'def
 {general_prolog|{operation}_{addrR}_{size}}
   {calcRightOpAddr|1Op|{addrR}|{size}}
   {calcRA|{addrR}|Write|{size}}
+  {arith_prepare_flags|{operation}}
   {perform_arith_1op|{size}|{operation}}
-  {setFlagsZCN}
-  call CommitCellWrite
+  {arith_set_flags|{operation}}
+  {commit_write|{addrR}|{isWrite|{operation}|right}}
   {advanceIP_1op|{addrR}|{size}}
 {general_epilog}
 
@@ -275,11 +346,21 @@ branch_code_size addrR
 branch_code_size 'Rel
   1
 
-check_cond flag neg
-  test Flags, {flag}
+check_cond 'jge ' '-
+  push _Flags
+  popfd
+  jl @@dont_branch
+
+check_cond 'jl ' '-
+  push _Flags
+  popfd
+  jge @@dont_branch
+
+check_cond operation flag neg
+  test _Flags, {flag}
   j{neg}z @@dont_branch
 
-check_cond '- neg
+check_cond operation '- neg
 
 branch_instr_size addrR
 {branch_code_size|{addrR}}+{ropsize|{addrR}|32}
@@ -311,7 +392,7 @@ branch_instruction_abs operation addrR flag neg 'def
 
 branch_instruction operation addrR flag neg 'def
 {general_prolog|{operation}_{addrR}}
-  {check_cond|{flag}|{neg}}
+  {check_cond|{operation}|{flag}|{neg}}
   {store_ret_addr|{operation}|{addrR}}
   {branch_to_target|{addrR}}
   ret
@@ -440,6 +521,7 @@ const
 {arith|sub|2op|def}
 {arith|sbb|2op|def}
 {arith|cmp|2op|def}
+{arith|cpc|2op|def}
 {arith|and|2op|def}
 {arith|or|2op|def}
 {arith|xor|2op|def}
@@ -447,17 +529,21 @@ const
 {arith|neg|1op|def}
 {arith|inc|1op|def}
 {arith|dec|1op|def}
+{arith|test|2op|def}
+{arith|clr|1op|def}
 {arith|mov|2op|def}
 {branch_rel|jmp|def}
 {branch_abs|jmp|def}
 {branch_rel|call|def}
 {branch_abs|call|def}
-{branch_cond|jz|ZFlag||def}
-{branch_cond|jnz|ZFlag|n|def}
-{branch_cond|jc|CFlag||def}
-{branch_cond|jnc|CFlag|n|def}
-{branch_cond|jn|NFlag||def}
-{branch_cond|jp|NFlag|n|def}
+{branch_cond|jz|_ZF||def}
+{branch_cond|jnz|_ZF|n|def}
+{branch_cond|jc|_CF||def}
+{branch_cond|jnc|_CF|n|def}
+{branch_cond|jn|_NF||def}
+{branch_cond|jp|_NF|n|def}
+{branch_cond|jge||-|def}
+{branch_cond|jl||-|def}
 procedure InitInstructionTable;
 var i : Integer;
 begin
@@ -466,6 +552,7 @@ begin
   {arith|sub|2op|$03}
   {arith|sbb|2op|$04}
   {arith|cmp|2op|$05}
+  {arith|cpc|2op|$06}
   {arith|and|2op|$07}
   {arith|or|2op|$08}
   {arith|xor|2op|$09}
@@ -473,6 +560,8 @@ begin
   {arith|neg|1op|$0B}
   {arith|inc|1op|$0C}
   {arith|dec|1op|$0D}
+  {arith|test|2op|$0E}
+  {arith|clr|1op|$0F}
   {arith|mov|2op|$A0}
   {branch_rel|jmp|$80}
   {branch_abs|jmp|$81}
@@ -484,6 +573,8 @@ begin
   {branch_rel|jnc|$8B}
   {branch_rel|jn|$8C}
   {branch_rel|jp|$8D}
+  {branch_rel|jge|$8E}
+  {branch_rel|jl|$8F}
 end;
 end.
 
