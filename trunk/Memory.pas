@@ -21,8 +21,13 @@ type
   PMemPack = ^TMemPack;
 var
   MemPacks : Array[0..$FFFF] of PMemPack;
-  WriteCellAddr : Pointer;
-  WriteCellBuf : TCell;
+
+  CrossPackWrite : record
+    Address : TAddress;
+    Pack1, Pack2 : PMemPack;
+    Size : Integer;
+  end;
+  CrossPackBuff : array[0..15] of Byte;
 
 function GetPack(PackNo : TAddress) : PMemPack;
 begin
@@ -38,14 +43,21 @@ function GetCellAddr(address : TAddress; size : Integer) : Pointer;
 var
   Pack : PMemPack;
   PackNo, PackOffs : TAddress;
+  SizePart1 : Integer;
 begin
-  Assert(WriteCellAddr = nil);
+  Assert(CrossPackWrite.Address = 0);
   PackNo := address shr 16;
   PackOffs := address and $FFFF;
   pack := GetPack(PackNo);
   if PackOffs <= $10000 - size then
     Result := @(pack^[PackOffs])
-  else
+  else begin
+    SizePart1 := $10000 - PackOffs;
+    Move(pack^[PackOffs], CrossPackBuff, SizePart1);
+    pack := GetPack((PackNo + 1) and $FFFF);
+    Move(pack^[0], CrossPackBuff[SizePart1], size - SizePart1);
+    Result := @CrossPackBuff; 
+  end;
     raise EMemoryManagerException.Create('Page bounds violated');
 end;
 

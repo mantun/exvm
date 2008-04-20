@@ -14,7 +14,7 @@ type
 
   TVMState = record
     _IP, _SP : TAddress;
-    Flags : Cardinal;
+    _Flags : Cardinal;
     Registers : TRegistersFile;
   end;
 
@@ -22,7 +22,7 @@ function GetState : TVMState;
 begin
   Result._IP := Core._IP;
   Result._SP := Core._SP;
-  Result.Flags := Core.Flags;
+  Result._Flags := Core._Flags;
   Result.Registers := RegistersFile;
 end;
 
@@ -42,9 +42,9 @@ begin
           TestName + ': IP'#13#10 + IntToHex(s1._IP, 8) + ' ' + IntToHex(s2._IP, 8));
   Assert(s1._SP = s2._SP,
           TestName + ': SP'#13#10 + IntToHex(s1._SP, 8) + ' ' + IntToHex(s2._SP, 8));
-  fl1 := s1.Flags and (ZFlag or CFlag or NFlag);
-  fl2 := s2.Flags and (ZFlag or CFlag or NFlag);
-  Assert(fl1 = fl2, TestName + ': FL'#13#10 + IntToHex(fl1, 2) + ' ' + IntToHex(fl2, 2));
+  fl1 := s1._Flags and (_ZF or _CF or _NF or _OF);
+  fl2 := s2._Flags and (_ZF or _CF or _NF or _OF);
+  Assert(fl1 = fl2, TestName + ': FL'#13#10 + IntToHex(fl1, 4) + ' ' + IntToHex(fl2, 4));
   for i := Low(s1.Registers) to High(s1.Registers) do
     Assert(s1.Registers[i] = s2.Registers[i],
             TestName + ': R[' + IntToHex(i, 2) + ']'#13#10 + IntToHex(s1.Registers[i], 8) + ' ' + IntToHex(s2.Registers[i], 8));
@@ -65,7 +65,7 @@ begin
   s := GetState;
   SingleStep;
   s.Registers[$02] := $12345678 + $87654321;
-  s.Flags := s.Flags or NFlag;
+  s._Flags := s._Flags or _NF;
   s._IP := s._IP + 7;
   CompareStates(s, GetState, 'Test_Add_Imm_Reg_32');
 end;
@@ -85,7 +85,7 @@ begin
   s := GetState;
   SingleStep;
   s.Registers[$02] := ($CDEF + $4321) and $FFFF or $87650000;
-  s.Flags := s.Flags or CFlag;
+  s._Flags := s._Flags or _CF;
   s._IP := s._IP + 5;
   CompareStates(s, GetState, 'Test_Add_Imm_Reg_16');
 end;
@@ -105,7 +105,7 @@ begin
   s := GetState;
   SingleStep;
   s.Registers[$02] := ($EF + $21) and $FF or $87654300;
-  s.Flags := s.Flags or CFlag;
+  s._Flags := s._Flags or _CF;
   s._IP := s._IP + 4;
   CompareStates(s, GetState, 'Test_Add_Imm_Reg_8');
 end;
@@ -126,7 +126,7 @@ begin
   s := GetState;
   SingleStep;
   s.Registers[$02] := $12345678 + $87654321;
-  s.Flags := s.Flags or NFlag;
+  s._Flags := s._Flags or _NF;
   s._IP := s._IP + 4;
   CompareStates(s, GetState, 'Test_Add_Reg_Reg_32');
 end;
@@ -148,7 +148,7 @@ begin
   s := GetState;
   SingleStep;
   s.Registers[$02] := $12345678 + $87654321;
-  s.Flags := s.Flags or NFlag;
+  s._Flags := s._Flags or _NF;
   s._IP := s._IP + 4;
   CompareStates(s, GetState, 'Test_Add_RegInd_Reg_32');
 end;
@@ -171,7 +171,7 @@ begin
   s := GetState;
   SingleStep;
   s.Registers[$02] := $12345678 + $87654321;
-  s.Flags := s.Flags or NFlag;
+  s._Flags := s._Flags or _NF;
   s._IP := s._IP + 5;
   CompareStates(s, GetState, 'Test_Add_RegIndDispl_Reg_32');
 end;
@@ -193,7 +193,7 @@ begin
   s := GetState;
   SingleStep;
   s.Registers[$02] := $87654321 + $12345678;
-  s.Flags := s.Flags or NFlag;
+  s._Flags := s._Flags or _NF;
   s._IP := s._IP + 7;
   CompareStates(s, GetState, 'Test_Add_Direct_Reg_32');
 end;
@@ -216,7 +216,7 @@ begin
   s := GetState;
   SingleStep;
   s.Registers[$02] := $87654321 + $12345678;
-  s.Flags := s.Flags or NFlag;
+  s._Flags := s._Flags or _NF;
   s._IP := s._IP + 4;
   CompareStates(s, GetState, 'Test_Add_Indirect_Reg_32');
 end;
@@ -240,7 +240,7 @@ begin
   s := GetState;
   SingleStep;
   s.Registers[$02] := $87654321 + $12345678;
-  s.Flags := s.Flags or NFlag;
+  s._Flags := s._Flags or _NF;
   s._IP := s._IP + 8;
   CompareStates(s, GetState, 'Test_Add_IndirectDispl_Reg_32');
 end;
@@ -265,7 +265,7 @@ begin
   s := GetState;
   SingleStep;
   s.Registers[$02] := $87654321 + $12345678;
-  s.Flags := s.Flags or NFlag;
+  s._Flags := s._Flags or _NF;
   s._IP := s._IP + 5;
   CompareStates(s, GetState, 'Test_Add_IndirectShortDispl_Reg_32');
 end;
@@ -287,7 +287,7 @@ begin
   s := GetState;
   SingleStep;
   s.Registers[$02] := Integer($FFFFFFFE) + $12345678;
-  s.Flags := s.Flags or CFlag;
+  s._Flags := s._Flags or _CF;
   s._IP := s._IP + 4;
   CompareStates(s, GetState, 'Test_Add_ShortImm_Reg_32');
 end;
@@ -308,7 +308,7 @@ begin
   s := GetState;
   SingleStep;
   s.Registers[$03] := $12345678 + $87654321;
-  s.Flags := s.Flags or NFlag;
+  s._Flags := s._Flags or _NF;
   s._IP := s._IP + 7;
   CompareStates(s, GetState, 'Test_Add_Imm_RegInd_32');
 end;
@@ -329,7 +329,7 @@ begin
   s := GetState;
   SingleStep;
   s.Registers[$03] := $12345678 + $87654321;
-  s.Flags := s.Flags or NFlag;
+  s._Flags := s._Flags or _NF;
   s._IP := s._IP + 4;
   CompareStates(s, GetState, 'Test_Add_Reg_Reg_Right_32');
 end;
@@ -351,6 +351,49 @@ begin
     on EBadInstructionException do ;
     on Exception do raise;
   end;
+end;
+
+procedure Test_Sbb_Reg_Reg_32;
+var
+  p : PBytes;
+  s : TVMState;
+begin
+  ClearAll;
+  p := GetCellAddr(_IP, 4);
+  p^[0] := $04; // sbb
+  p^[1] := $01; // dest:reg, src:reg, size:32
+  p^[2] := $02; // dest reg no
+  p^[3] := $03; // src reg no
+  RegistersFile[$02] := $7654321;
+  RegistersFile[$03] := $1234567;
+  _Flags := _Flags or _CF;
+  s := GetState;
+  SingleStep;
+  s.Registers[$02] := $7654321 - $1234567 - 1;
+  s._Flags := s._Flags and not _CF;
+  s._IP := s._IP + 4;
+  CompareStates(s, GetState, 'Test_Sbb_Reg_Reg_32');
+end;
+
+procedure Test_Cpc_Reg_Reg_32;
+var
+  p : PBytes;
+  s : TVMState;
+begin
+  ClearAll;
+  p := GetCellAddr(_IP, 4);
+  p^[0] := $06; // cpc
+  p^[1] := $01; // dest:reg, src:reg, size:32
+  p^[2] := $02; // dest reg no
+  p^[3] := $03; // src reg no
+  RegistersFile[$02] := $1234567;
+  RegistersFile[$03] := $1234567;
+  _Flags := _Flags or _CF;
+  s := GetState;
+  SingleStep;
+  s._IP := s._IP + 4;
+  s._Flags := s._Flags or _NF;
+  CompareStates(s, GetState, 'Test_Cpc_Reg_Reg_32');
 end;
 
 procedure Test_Not_Reg_32;
@@ -403,6 +446,24 @@ begin
     on EBadInstructionException do ;
     on Exception do raise;
   end;
+end;
+
+procedure Test_Clr_Reg_32;
+var
+  p : PBytes;
+  s : TVMState;
+begin
+  ClearAll;
+  p := GetCellAddr(_IP, 3);
+  p^[0] := $0F; // jmp rel
+  p^[1] := $01; // offset
+  p^[2] := $02; // next instr
+  RegistersFile[$02] := $ABCDEF;
+  s := GetState;
+  SingleStep;
+  s.Registers[$02] := 0;
+  s._IP := s._IP + 3;
+  CompareStates(s, GetState, 'Test_Clr_Reg_32');
 end;
 
 procedure Test_Jmp_Rel;
@@ -470,7 +531,7 @@ begin
   p^[0] := $8A; // jc
   p^[1] := $25; // offset
   p^[2] := $BB; // next instr
-  Flags := Flags or CFlag;
+  _Flags := _Flags or _CF;
   s := GetState;
   SingleStep;
   s._IP := s._IP + $25;
@@ -484,14 +545,32 @@ var
 begin
   ClearAll;
   p := GetCellAddr(_IP, 2);
-  p^[0] := $8A; // jc
+  p^[0] := $88; // jz
   p^[1] := $25; // offset
   p^[2] := $BB; // next instr
-  Flags := Flags and not ZFlag;
+  _Flags := _Flags and not _ZF;
   s := GetState;
   SingleStep;
   s._IP := s._IP + $2;
   CompareStates(s, GetState, 'Test_jz_false');
+end;
+
+procedure Test_jge_true;
+var
+  p : PBytes;
+  s : TVMState;
+begin
+  ClearAll;
+  p := GetCellAddr(_IP, 2);
+  p^[0] := $8E; // jge
+  p^[1] := $25; // offset
+  p^[2] := $BB; // next instr
+  _Flags := _Flags and not _OF;
+  _Flags := _Flags and not _CF;
+  s := GetState;
+  SingleStep;
+  s._IP := s._IP + $25;
+  CompareStates(s, GetState, 'Test_ge_true');
 end;
 
 procedure Test_Sum;
@@ -550,7 +629,7 @@ begin
   s.Registers[1] := 10;
   s.Registers[2] := sum;
   s._IP := s._IP + SizeOf(bytes) - 1;
-  s.Flags := s.Flags or ZFlag;
+  s._Flags := s._Flags or _ZF;
   CompareStates(s, GetState, 'Test_Sum');
 end;
 
@@ -570,12 +649,16 @@ begin
   Test_Add_Imm_RegInd_32;
   Test_Add_Reg_Reg_Right_32;
   Test_Add_Imm_Reg_Right_32;
-
-// fails!(must not touch flags) Test_Not_Reg_32;
 // ensure request/commit of written memory in both directions
-// add missing arith
+
+  Test_Sbb_Reg_Reg_32;
+  Test_Cpc_Reg_Reg_32;
+
+  Test_Not_Reg_32;
   Test_Not_Imm_32;
   Test_Not_ShortImm_32;
+
+  Test_Clr_Reg_32;
 
   Test_Jmp_Rel;
   Test_Jmp_Reg_Abs;
@@ -584,6 +667,7 @@ begin
 
   Test_jc_true;
   Test_jz_false;
+  Test_jge_true;
 
   Test_Sum;
 end;

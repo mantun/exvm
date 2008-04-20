@@ -278,5 +278,9 @@ begin
   m := FindMacro('target', []);
   if m = nil then
     raise Exception.Create('Macro named ''target'' must be specified');
-  WriteLn(m.Expand([]));
+  try
+    WriteLn(m.Expand([]));
+  except
+    WriteLn('Error:'#13#10 + Exception(ExceptObject).Message);
+  end;
 end.
