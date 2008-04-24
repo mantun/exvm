@@ -9,7 +9,7 @@ uses
   Core in 'Core\Core.pas',
   Instructions in 'Core\Instructions.pas',
   Memory in 'Core\Memory.pas',
-  Tests in 'Tests.pas';
+  Tests in 'Tests\Tests.pas';
 
 begin
   try
