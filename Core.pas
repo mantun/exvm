@@ -8,7 +8,8 @@ var
   _IP : TAddress;
   _SP : TAddress;
   _Flags : Cardinal;
-  InstructionTable : Array[Word] of procedure;
+  InstructionTable : array[Word] of procedure;
+  SysRegisters : array[Byte] of ^TCell;
 
 const
   _CF = 1;
@@ -78,7 +79,7 @@ end;
 
 procedure Reset;
 begin
-  _IP := 0;
+  _IP := $FFFFFFF0;
   _SP := 0;
   _Flags := 0;
   Stopped := True;
@@ -90,16 +91,31 @@ begin
           + IntToHex(_IP, 8) + ': ' + IntToHex(Swap(P16Cell(GetCellAddr(_IP, 2))^), 4));
 end;
 
+procedure HaltInstruction;
+begin
+  Stopped := True;
+end;
+
+procedure InitSysRegisters;
+type
+  TRegs = array[Byte] of TCell;
+var
+  i : Integer;
+  p : ^TRegs;
+begin
+  GetMem(p, SizeOf(TRegs));
+  for i := 0 to High(Byte) do
+    SysRegisters[i] := @(p^[i]);
+  SysRegisters[0] := @_IP;
+  SysRegisters[1] := @_Flags;
+  SysRegisters[2] := @_SP;
+end;
+
 procedure InitEmptyInstructionTable;
 var i : Integer;
 begin
   for i := Low(InstructionTable) to High(InstructionTable) do
     InstructionTable[i] := @InvalidInstruction;
-end;
-
-procedure HaltInstruction;
-begin
-  Stopped := True;
 end;
 
 type TProcedure = procedure;
@@ -111,7 +127,9 @@ begin
 end;
 
 initialization
+  InitSysRegisters;
   InitEmptyInstructionTable;
   Instructions.InitInstructionTable;
   PutBulkInstruction($AA, @HaltInstruction);
+  Reset;
 end.

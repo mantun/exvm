@@ -25,6 +25,8 @@ var
   CrossPackWrite : record
     Address : TAddress;
     Pack1, Pack2 : PMemPack;
+    PackOffs : TAddress;
+    SizePart1 : Integer;
     Size : Integer;
   end;
   CrossPackBuff : array[0..15] of Byte;
@@ -49,26 +51,34 @@ begin
   PackNo := address shr 16;
   PackOffs := address and $FFFF;
   pack := GetPack(PackNo);
-  if PackOffs <= $10000 - size then
+  if PackOffs <= TAddress($10000 - size) then
     Result := @(pack^[PackOffs])
   else begin
     SizePart1 := $10000 - PackOffs;
     Move(pack^[PackOffs], CrossPackBuff, SizePart1);
+    CrossPackWrite.Pack1 := pack;
     pack := GetPack((PackNo + 1) and $FFFF);
     Move(pack^[0], CrossPackBuff[SizePart1], size - SizePart1);
-    Result := @CrossPackBuff; 
+    Result := @CrossPackBuff;
+    CrossPackWrite.Pack2 := pack;
+    CrossPackWrite.Size := size;
+    CrossPackWrite.PackOffs := PackOffs;
+    CrossPackWrite.SizePart1 := SizePart1;
   end;
-    raise EMemoryManagerException.Create('Page bounds violated');
 end;
 
 function GetCellAddrWrite(address : TAddress; size : Integer) : Pointer;
 begin
   Result := GetCellAddr(address, size);
+  CrossPackWrite.Address := address;
 end;
 
 procedure CommitCellWrite;
 begin
-  ;
+  Assert(CrossPackWrite.Address <> 0);
+  Move(CrossPackBuff, CrossPackWrite.Pack1^[CrossPackWrite.PackOffs], CrossPackWrite.SizePart1);
+  Move(CrossPackBuff[CrossPackWrite.SizePart1], CrossPackWrite.Pack2^[0], CrossPackWrite.Size - CrossPackWrite.SizePart1);
+  CrossPackWrite.Address := 0;
 end;
 
 procedure Clear;

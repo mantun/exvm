@@ -573,6 +573,68 @@ begin
   CompareStates(s, GetState, 'Test_ge_true');
 end;
 
+procedure Test_Ret;
+var
+  p : PBytes;
+  s : TVMState;
+begin
+  ClearAll;
+  p := GetCellAddr(_IP, 1);
+  p^[0] := $84; // ret
+  p^[1] := $BB; // next instr
+  _SP := $100;
+  p := GetCellAddr(_SP, 4);
+  P32Cell(p)^ := $12345678;
+  s := GetState;
+  SingleStep;
+  s._IP := $12345678;
+  s._SP := s._SP + 4;
+  CompareStates(s, GetState, 'Test_Ret');
+end;
+
+procedure Test_Push_Reg_32;
+var
+  p : PBytes;
+  s : TVMState;
+begin
+  ClearAll;
+  p := GetCellAddr(_IP, 3);
+  p^[0] := $A5; // push
+  p^[1] := $01; // src:reg, size:32
+  p^[2] := $02; // regno
+  _SP := $100;
+  RegistersFile[$02] := $12345678;
+  s := GetState;
+  SingleStep;
+  s._IP := s._IP + 3;
+  s._SP := s._SP - 4;
+  CompareStates(s, GetState, 'Test_Push_Reg_32');
+  p := GetCellAddr(s._SP, 4);
+  Assert(P32Cell(p)^ = $12345678, 'Test_Push_Reg_32: value'#13#10 +
+    '12345678' + IntToHex(P32Cell(p)^, 8));
+end;
+
+procedure Test_Pop_Reg_32;
+var
+  p : PBytes;
+  s : TVMState;
+begin
+  ClearAll;
+  p := GetCellAddr(_IP, 3);
+  p^[0] := $A6; // pop
+  p^[1] := $01; // src:reg, size:32
+  p^[2] := $02; // regno
+  _SP := $100;
+  p := GetCellAddr(_SP, 4);
+  P32Cell(p)^ := $12345678;
+  s := GetState;
+  SingleStep;
+  s._IP := s._IP + 3;
+  s._SP := s._SP + 4;
+  s.Registers[$02] := $12345678;
+  CompareStates(s, GetState, 'Test_Pop_Reg_32');
+end;
+
 procedure Test_Sum;
 {
 0000: A0 00 00 00 01 00 00   mov r0, $100
@@ -584,7 +646,7 @@ procedure Test_Sum;
 0016: 0C 01 01               inc r1
 0019: 05 08 01 0A            cmp r1, 10
 001D: 8A F2                  jc loop
-001F: A0 24 02 FC 00 00 00   mov [$FC], r2
+001F: A0 24 02 FF 00 00 00   mov [$FF], r2
 0016: AA                     halt             
 }
 const
@@ -598,7 +660,7 @@ const
     $0C, $01, $01,                     //   inc r1
     $05, $08, $01, $0A,                //   cmp r1, 10
     $8A, $F2,                          //   jc loop
-    $A0, $24, $02, $FF, $00, $00, $00, //   mov [$FC], r2
+    $A0, $24, $02, $FF, $00, $00, $00, //   mov [$FF], r2
     $AA                                //   halt
 );
 var
@@ -608,6 +670,7 @@ var
   sum : Byte;
 begin
   ClearAll;
+  _IP := $10;
   p := GetCellAddr(_IP, SizeOf(bytes));
   Move(bytes, p^, SizeOf(bytes));
 
@@ -633,7 +696,32 @@ begin
   CompareStates(s, GetState, 'Test_Sum');
 end;
 
-procedure RunAllTests;
+procedure Test_CrossPageRead;
+var p : PBytes;
+begin
+  p := GetCellAddr($FFFE, 2);
+  p^[0] := $21;
+  p^[1] := $43;
+  p := GetCellAddr($10000, 2);
+  p^[0] := $65;
+  p^[1] := $87;
+  p := GetCellAddr($FFFE, 4);
+  Assert(P32Cell(p)^ = $87654321, 'Test_CrossPageRead');
+end;
+
+procedure Test_CrossPageWrite;
+var p : PBytes;
+begin
+  p := GetCellAddrWrite($FFFE, 4);
+  P32Cell(p)^ := $87654321;
+  CommitCellWrite;
+  p := GetCellAddr($FFFE, 2);
+  Assert(P16Cell(p)^ = $4321, 'Test_CrossPageWrite');
+  p := GetCellAddr($10000, 2);
+  Assert(P16Cell(p)^ = $8765, 'Test_CrossPageWrite');
+end;
+
+procedure Test_AddressingModes_Direction;
 begin
   Test_Add_Imm_Reg_32;
   Test_Add_Imm_Reg_16;
@@ -649,7 +737,11 @@ begin
   Test_Add_Imm_RegInd_32;
   Test_Add_Reg_Reg_Right_32;
   Test_Add_Imm_Reg_Right_32;
-// ensure request/commit of written memory in both directions
+end;
+
+procedure Test_SingleInstructions;
+begin
+  Test_AddressingModes_Direction;
 
   Test_Sbb_Reg_Reg_32;
   Test_Cpc_Reg_Reg_32;
@@ -669,7 +761,25 @@ begin
   Test_jz_false;
   Test_jge_true;
 
+  Test_Ret;
+
+  Test_Push_Reg_32;
+  Test_Pop_Reg_32;
+end;
+
+procedure RunAllTests;
+begin
+  Test_SingleInstructions;
+
   Test_Sum;
+
+  Test_CrossPageRead;
+  Test_CrossPageWrite;
+
+  // other instructions
+  // access of sys registers
+  // storage
+  // exceptions
 end;
 
 end.
