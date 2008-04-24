@@ -4,11 +4,11 @@ program exvm;
 
 uses
   SysUtils,
-  Memory in 'Memory.pas',
-  Registers in 'Registers.pas',
-  Common in 'Common.pas',
-  Core in 'Core.pas',
-  Instructions in 'Instructions.pas',
+  Registers in 'Core\Registers.pas',
+  Common in 'Core\Common.pas',
+  Core in 'Core\Core.pas',
+  Instructions in 'Core\Instructions.pas',
+  Memory in 'Core\Memory.pas',
   Tests in 'Tests.pas';
 
 begin
