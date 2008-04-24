@@ -121,20 +121,26 @@ calcLA 'RegInd
   mov al, [eax * 4 + RegistersFile]
   lea edi, [eax * 4 + RegistersFile]
 
-fetchS addrR '32
+fetchR addrR '32
   mov eax, [esi]
 
-fetchS addrR '16
+fetchR addrR '16
   mov ax, [esi]
 
-fetchS addrR '8
+fetchR addrR '8
   mov al, [esi]
 
-fetchS 'ShortImm '32
+fetchR 'ShortImm '32
   movsx eax, byte ptr [esi]
 
-fetchS 'ShortImm '16
+fetchR 'ShortImm '16
   movsx ax, byte ptr [esi]
+
+fetchR 'ShortImm '8
+  mov {reg_A|8}, [esi]
+
+fetchR addrR size
+  mov {reg_A|{size}}, [esi]
 
 arith_set_flags_ZNO
   pushfd
@@ -188,15 +194,6 @@ word ptr
 
 ptr_mod '8
 byte ptr
-
-fetchR addrR size
-mov {reg_A|{size}}, [esi]
-
-fetchR 'ShortImm size
-movsx {reg_A|{size}}, byte ptr [esi]
-
-fetchR 'ShortImm '8
-mov {reg_A|8}, [esi]
 
 perform_arith_2op addrR size 'left 'cpc
   mov {reg_A|{size}}, [edi]
@@ -337,7 +334,7 @@ branch_to_target 'Rel
 branch_to_target addrR
   {calcRightOpAddr|1Op|{addrR}|32}
   {calcRA|{addrR}||32}
-  {fetchS|{addrR}|32}
+  {fetchR|{addrR}|32}
   mov _IP, eax
 
 branch_code_size addrR
@@ -368,15 +365,9 @@ branch_instr_size addrR
 store_ret_addr operation addrR
 
 store_ret_addr 'call addrR
-  sub _SP, 4
-  mov eax, _SP
-  mov edx, 4
-  call GetCellAddrWrite
-  mov esi, eax
   mov eax, _IP
   add eax, {branch_instr_size|{addrR}}
-  mov [esi], eax
-  call CommitCellWrite
+  {do_push}
 
 advanceIP_branch '- addrR
 
@@ -414,6 +405,94 @@ branch_abs oper opcode
 
 branch_cond oper flag neg opcode
 {branch_instruction_rel|{oper}|{flag}|{neg}|{opcode}}
+
+ret_instruction
+{general_prolog|ret}
+  {do_pop}
+  mov _IP, ebx
+{general_epilog}
+
+nop_instruction
+{general_prolog|nop}
+  inc _IP
+{general_epilog}
+
+; --- Stack -------------------------------------------------------------------
+
+do_push
+  mov ebx, eax
+  sub _SP, 4
+  mov eax, _SP
+  mov edx, 4
+  call GetCellAddrWrite
+  mov [eax], ebx
+  call CommitCellWrite
+
+do_pop
+  mov eax, _SP
+  mov edx, 4
+  call GetCellAddr
+  mov ebx, [eax]
+  add _SP, 4
+
+push_instruction addrR 'def
+{general_prolog|push_{addrR}}
+  {calcRightOpAddr|1Op|{addrR}|32}
+  {calcRA|{addrR}||32}
+  {fetchR|{addrR}|32}
+  {do_push}
+  {advanceIP_1op|{addrR}|32}
+{general_epilog}
+
+pop_instruction addrR 'def
+{general_prolog|pop_{addrR}}
+  {calcRightOpAddr|1Op|{addrR}|32}
+  {do_pop}
+  {calcRA|{addrR}|Write|32}
+  mov [esi], ebx
+  {commit_write|{addrR}|Write}
+  {advanceIP_1op|{addrR}|32}
+{general_epilog}
+
+push opcode
+{push_instruction|Imm|{opcode}}
+{push_instruction|Reg|{opcode}}
+{push_instruction|RegInd|{opcode}}
+{push_instruction|RegIndDispl|{opcode}}
+{push_instruction|Direct|{opcode}}
+{push_instruction|Indirect|{opcode}}
+{push_instruction|IndirectDispl|{opcode}}
+{push_instruction|ShortImm|{opcode}}
+{push_instruction|IndirectShortDispl|{opcode}}
+
+pop opcode
+{pop_instruction|Reg|{opcode}}
+{pop_instruction|RegInd|{opcode}}
+{pop_instruction|RegIndDispl|{opcode}}
+{pop_instruction|Direct|{opcode}}
+{pop_instruction|Indirect|{opcode}}
+{pop_instruction|IndirectDispl|{opcode}}
+{pop_instruction|IndirectShortDispl|{opcode}}
+
+; --- Other -------------------------------------------------------------------
+
+get_sys_reg
+{general_prolog|get_sys_reg}
+  movzx eax, byte ptr [ebx + 1]
+  mov edx, [eax + RegistersFile]
+  movzx eax, byte ptr [ebx + 2]
+  mov eax, [eax + SysRegisters]
+  mov [esi], eax
+{general_epilog}
+
+set_sys_reg
+{general_prolog|set_sys_reg}
+  movzx eax, byte ptr [ebx + 2]
+  mov eax, [eax + SysRegisters]
+  mov edx, [eax]
+  movzx eax, byte ptr [ebx + 1]
+  mov [eax + RegistersFile], edx
+{general_epilog}
 
 ; --- Opcodes -----------------------------------------------------------------
 
@@ -504,6 +583,12 @@ branch_instruction_abs operation addrR flag neg opcode
 branch_rel operation opcode
   {itable_put_bulk|{operation}_Rel|{opcode}}
 
+push_instruction addrR opcode
+  {itable_put_single|push_{addrR}|{build_opcode|{opcode}|{addrR}|||}}
+
+pop_instruction addrR opcode
+  {itable_put_single|pop_{addrR}|{build_opcode|{opcode}|{addrR}|||}}
+
 ; --- Target ------------------------------------------------------------------
 
 target
@@ -536,6 +621,7 @@ const
 {branch_abs|jmp|def}
 {branch_rel|call|def}
 {branch_abs|call|def}
+{ret_instruction}
 {branch_cond|jz|_ZF||def}
 {branch_cond|jnz|_ZF|n|def}
 {branch_cond|jc|_CF||def}
@@ -544,6 +630,11 @@ const
 {branch_cond|jp|_NF|n|def}
 {branch_cond|jge||-|def}
 {branch_cond|jl||-|def}
+{nop_instruction}
+{get_sys_reg}
+{set_sys_reg}
+{push|def}
+{pop|def}
 procedure InitInstructionTable;
 var i : Integer;
 begin
@@ -575,6 +666,12 @@ begin
   {branch_rel|jp|$8D}
   {branch_rel|jge|$8E}
   {branch_rel|jl|$8F}
+  {itable_put_bulk|ret|$84}
+  {itable_put_bulk|nop|$90}
+  {itable_put_bulk|get_sys_reg|$A1}
+  {itable_put_bulk|set_sys_reg|$A2}
+  {push|$A5}
+  {pop|$A6}
 end;
 end.
 

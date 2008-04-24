@@ -44,6 +44,7 @@ Rb - register or register indirect addressing, lower byte of the register
 Rn:Rn+1 - registers with indices n and n+1 are concatenated to form a single 64 bit register.
 K(8) - immediate/relative addressing (8 bits)
 A - any type of addressing
+SR - System register (IP, SP, Flags etc.)
 C - carry flag
 N - negative flag
 Z - zero flag
@@ -71,10 +72,10 @@ opcode	Mn	oper	operation		flags
 0E	test	R, A	R & A			ZCNO
 0F	clr	A	A <- 0			-
 
-10?	mul	R, A	Rn:Rn+1 <- R * A	?
-10?	mulw	Rw, A	R <- Rw * A		?
-10?	mulb	Rb, A	Rw <- Rb * A		?
-11?	div?
+n/a for now 10?	mul	R, A	Rn:Rn+1 <- R * A	?
+n/a for now 10?	mulw	Rw, A	R <- Rw * A		?
+n/a for now 10?	mulb	Rb, A	Rw <- Rb * A		?
+n/a for now 11?	div?
 
 Flow control:
 80	jmp	K	IP <- IP + K(8) + isz	-
@@ -93,19 +94,21 @@ Flow control:
 8E	jge	K	if (O=C) IP <- IP + K(8)  -
 8F	jl	K	if (O!=C) IP <- IP + K(8) -
 90	nop		-			-
-00	break		breaks			-
-CC	break		breaks			-
+-00	break		breaks			-
+-CC	break		breaks			-
 AA	halt		stops the VM
 
 Data transfer:
 A0	mov	R, A	R <- A			-
 A0	mov	A, R	A <- R			-
-A3	in?
-A4	out?
+A1	mov	Reg, SR	Reg <- SR		-
+A2	mov	SR, Reg	SR <- Reg		-
+-A3	in?
+-A4	out?
 A5	push	A	STACK <- A		-
 A6	pop	A	A <- STACK		-
-A7	pushf		STACK <- FLAGS		-
-A8	popf		FLAGS <- STACK 		*
+-A7	pushf		STACK <- FLAGS		-
+-A8	popf		FLAGS <- STACK 		*
 
 Bitwise:
 B0	shl	A, K	A <- A << K(8)		ZCNO
