@@ -1,0 +1,11 @@
+offset $0: 
+  8 bytes signature - 'EXVMIMG'#0, the 0 is format version
+offset $8: 
+  4 bytes
+  base address to load the image
+offset $C: 
+  4 bytes
+  size of the image
+offset $10: 
+  'size' bytes
+  raw image data

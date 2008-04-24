@@ -6,7 +6,7 @@ procedure RunAllTests;
 
 implementation
 
-uses SysUtils, Common, Memory, Registers, Core;
+uses SysUtils, Common, Memory, Registers, Core, ImageFile;
 
 type
   TBytes = array[Word] of Byte;
@@ -721,6 +721,28 @@ begin
   Assert(P16Cell(p)^ = $8765, 'Test_CrossPageWrite');
 end;
 
+procedure Test_LoadImageFile;
+var
+  f : File;
+  s : string[8];
+  k : Cardinal;
+begin
+  ClearAll;
+  s := 'EXVMIMG'#0;
+  AssignFile(f, 'test.exvmimage');
+  Rewrite(f, 1);
+  BlockWrite(f, s[1], Length(s));
+  k := _IP;
+  BlockWrite(f, k, SizeOf(k));
+  k := 1;
+  BlockWrite(f, k, SizeOf(k));
+  k := $AA;
+  BlockWrite(f, k, 1);
+  CloseFile(f);
+  LoadImageFile('test.exvmimage');
+  Run;
+end;
+
 procedure Test_AddressingModes_Direction;
 begin
   Test_Add_Imm_Reg_32;
@@ -776,8 +798,8 @@ begin
   Test_CrossPageRead;
   Test_CrossPageWrite;
 
+  Test_LoadImageFile;
   // other instructions
-  // access of sys registers
   // storage
   // exceptions
 end;

@@ -7,6 +7,9 @@ Uses Common, SysUtils;
 type
   EMemoryManagerException = class(Exception);
 
+const
+  MaxReqSize = 16;
+
 function GetCellAddr(address : TAddress; size : Integer) : Pointer;
 function GetCellAddrWrite(address : TAddress; size : Integer) : Pointer;
 procedure CommitCellWrite;
@@ -29,7 +32,7 @@ var
     SizePart1 : Integer;
     Size : Integer;
   end;
-  CrossPackBuff : array[0..15] of Byte;
+  CrossPackBuff : array[0..MaxReqSize - 1] of Byte;
 
 function GetPack(PackNo : TAddress) : PMemPack;
 begin
@@ -69,6 +72,7 @@ end;
 
 function GetCellAddrWrite(address : TAddress; size : Integer) : Pointer;
 begin
+  CrossPackWrite.Size := 0;
   Result := GetCellAddr(address, size);
   CrossPackWrite.Address := address;
 end;
@@ -76,8 +80,10 @@ end;
 procedure CommitCellWrite;
 begin
   Assert(CrossPackWrite.Address <> 0);
-  Move(CrossPackBuff, CrossPackWrite.Pack1^[CrossPackWrite.PackOffs], CrossPackWrite.SizePart1);
-  Move(CrossPackBuff[CrossPackWrite.SizePart1], CrossPackWrite.Pack2^[0], CrossPackWrite.Size - CrossPackWrite.SizePart1);
+  if CrossPackWrite.Size <> 0 then begin
+    Move(CrossPackBuff, CrossPackWrite.Pack1^[CrossPackWrite.PackOffs], CrossPackWrite.SizePart1);
+    Move(CrossPackBuff[CrossPackWrite.SizePart1], CrossPackWrite.Pack2^[0], CrossPackWrite.Size - CrossPackWrite.SizePart1);
+  end;
   CrossPackWrite.Address := 0;
 end;
 
