@@ -20,13 +20,12 @@ const
 type
   EBadInstructionException = class(Exception);
 
-procedure Reset;
 procedure Run;
 procedure SingleStep;
 
 implementation
 
-uses Memory, Instructions;
+uses Memory, Instructions, Reset;
 
 var
   Stopped : Boolean;
@@ -77,7 +76,7 @@ asm
   pop esi
 end;
 
-procedure Reset;
+procedure Clear;
 begin
   _IP := $FFFFFFF0;
   _SP := 0;
@@ -131,5 +130,5 @@ initialization
   InitEmptyInstructionTable;
   Instructions.InitInstructionTable;
   PutBulkInstruction($AA, @HaltInstruction);
-  Reset;
+  Reset.Attach(Clear);
 end.

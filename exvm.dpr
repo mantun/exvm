@@ -4,15 +4,18 @@ program exvm;
 
 uses
   SysUtils,
+  Reset in 'Core\Reset.pas',
   Registers in 'Core\Registers.pas',
   Common in 'Core\Common.pas',
   Core in 'Core\Core.pas',
   Instructions in 'Core\Instructions.pas',
   Memory in 'Core\Memory.pas',
   Tests in 'Tests\Tests.pas',
-  ImageFile in 'Tools\ImageFile.pas';
+  ImageFile in 'Tools\ImageFile.pas',
+  Bus in 'Core\Bus.pas';
 
 begin
+  Reset.DoReset;
   if ParamCount = 0 then begin
     WriteLn('Usage:');
     WriteLn('  exvm <imagefile>                - load memory image and run');

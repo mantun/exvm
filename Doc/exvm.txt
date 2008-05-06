@@ -103,8 +103,8 @@ A0	mov	R, A	R <- A			-
 A0	mov	A, R	A <- R			-
 A1	mov	Reg, SR	Reg <- SR		-
 A2	mov	SR, Reg	SR <- Reg		-
--A3	in?
--A4	out?
+A3	in	R, A	R(32) <- Bus[A(32)]	-
+A4	out	A, R	Bus[A(32)] <- R(32)	-
 A5	push	A	STACK <- A		-
 A6	pop	A	A <- STACK		-
 -A7	pushf		STACK <- FLAGS		-
