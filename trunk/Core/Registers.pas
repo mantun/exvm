@@ -9,13 +9,15 @@ type
 var
   RegistersFile : TRegistersFile;
 
-procedure Clear;
-
 implementation
+
+uses Reset;
 
 procedure Clear;
 begin
   FillChar(RegistersFile, SizeOf(RegistersFile), 0);
 end;
 
+initialization
+  Reset.Attach(Clear);
 end.

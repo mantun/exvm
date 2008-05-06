@@ -6,7 +6,7 @@ procedure RunAllTests;
 
 implementation
 
-uses SysUtils, Common, Memory, Registers, Core, ImageFile;
+uses SysUtils, Reset, Common, Memory, Registers, Core, ImageFile;
 
 type
   TBytes = array[Word] of Byte;
@@ -28,9 +28,7 @@ end;
 
 procedure ClearAll;
 begin
-  Memory.Clear;
-  Registers.Clear;
-  Core.Reset;
+  Reset.DoReset;
 end;
 
 procedure CompareStates(const s1, s2 : TVMState; TestName : String);

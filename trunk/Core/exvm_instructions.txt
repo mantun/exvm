@@ -159,6 +159,12 @@ arith_set_flags 'dec
 arith_set_flags 'inc
 {arith_set_flags_ZNO}
 
+arith_set_flags 'mov
+
+arith_set_flags 'in
+
+arith_set_flags 'out
+
 arith_set_flags operation
   pushfd
   pop _Flags
@@ -194,6 +200,26 @@ word ptr
 
 ptr_mod '8
 byte ptr
+
+perform_arith_2op addrR size 'left 'out
+  mov eax, [edi]
+  mov edx, [esi]
+  call Bus.Write
+
+perform_arith_2op addrR size 'right 'out
+  mov eax, [esi]
+  mov edx, [edi]
+  call Bus.Write
+
+perform_arith_2op addrR size 'left 'in
+  mov eax, [esi]
+  call Bus.Read
+  mov [edi], eax
+
+perform_arith_2op addrR size 'right 'in
+  mov eax, [edi]
+  call Bus.Read
+  mov [esi], eax
 
 perform_arith_2op addrR size 'left 'cpc
   mov {reg_A|{size}}, [edi]
@@ -306,6 +332,12 @@ expand_arith_addrR operation direction '1op opcode
 {expand_arith_size|{operation}|Indirect||1op|{opcode}}
 {expand_arith_size|{operation}|IndirectDispl||1op|{opcode}}
 {expand_arith_size|{operation}|IndirectShortDispl||1op|{opcode}}
+
+expand_arith_size 'in addrR direction opcount opcode
+{expand_arith|{opcount}|in|{addrR}|{direction}|32|{opcode}}
+
+expand_arith_size 'out addrR direction opcount opcode
+{expand_arith|{opcount}|out|{addrR}|{direction}|32|{opcode}}
 
 expand_arith_size operation addrR direction opcount opcode
 {expand_arith|{opcount}|{operation}|{addrR}|{direction}|32|{opcode}}
@@ -596,7 +628,7 @@ unit Instructions;
 interface
 procedure InitInstructionTable;
 implementation
-uses Core, Memory, Registers;
+uses Core, Memory, Registers, Bus;
 const
   SourceOpDispl = 3;
   DestOpDispl = 2;
@@ -617,6 +649,8 @@ const
 {arith|test|2op|def}
 {arith|clr|1op|def}
 {arith|mov|2op|def}
+{arith|in|2op|def}
+{arith|out|2op|def}
 {branch_rel|jmp|def}
 {branch_abs|jmp|def}
 {branch_rel|call|def}
@@ -654,6 +688,8 @@ begin
   {arith|test|2op|$0E}
   {arith|clr|1op|$0F}
   {arith|mov|2op|$A0}
+  {arith|in|2op|$A3}
+  {arith|out|2op|$A4}
   {branch_rel|jmp|$80}
   {branch_abs|jmp|$81}
   {branch_rel|call|$82}

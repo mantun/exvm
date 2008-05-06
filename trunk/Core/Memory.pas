@@ -17,7 +17,7 @@ procedure Clear;
 
 implementation
 
-uses Classes;
+uses Classes, Reset;
 
 type
   TMemPack = Array[0..$FFFF] of Byte;
@@ -100,4 +100,6 @@ begin
   end;
 end;
 
+initialization
+  Reset.Attach(Clear);
 end.
