@@ -1,0 +1,1 @@
+Experimental Virtual Machine is aimed at learning how to create a VM, as well as some new (for me) programming techniques. It could be used later for some other projects I have in mind.
